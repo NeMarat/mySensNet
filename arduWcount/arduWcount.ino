@@ -32,6 +32,7 @@ byte t=LOW;
 float battV;
 volatile int v_prescalar=0;
 byte curPower;
+const float typVbg = 1.15;
 
 void incomingMessage(const MyMessage &message) {
   if (message.type==V_VOLUME/*V_VAR1*/) {
@@ -50,10 +51,10 @@ void incomingMessage(const MyMessage &message) {
 }
 
 void checkOut () {
-  digitalWrite(LED, HIGH);
-  digitalWrite(COLDPIN, HIGH);
-  digitalWrite(HOTPIN,  HIGH);
-    
+  analogWrite(LED, 64);
+  
+  digitalWrite(COLDPIN, HIGH);  
+  delay(3);
   t=digitalRead(COLDPIN);
   if (cPinState != t) {
     cPinState = t;
@@ -61,6 +62,10 @@ void checkOut () {
     EEPROM.write(COLDPinStateMem, cPinState);
     writeULong(coldPinCount, COLDCountMem);
   }
+  digitalWrite(COLDPIN, LOW);
+  
+  digitalWrite(HOTPIN,  HIGH);
+  delay(3);
   t=digitalRead(HOTPIN);
   if (hPinState != t) {
     hPinState = t;
@@ -68,20 +73,43 @@ void checkOut () {
     EEPROM.write(HOTPinStateMem, hPinState);
     writeULong(hotPinCount, HOTCountMem);  
   }
-  
-  digitalWrite(COLDPIN, LOW);
   digitalWrite(HOTPIN,  LOW);
-  digitalWrite(LED, LOW);
+  analogWrite(LED, LOW);
 }
 
 float baTest () {
-  digitalWrite(BATPINT, HIGH);
-  float b = analogRead(BATPIN);
-  b += analogRead(BATPIN);
-  b += analogRead(BATPIN);
-  b += analogRead(BATPIN);
-  b = (b/4.0)*BT_V;
-  digitalWrite(BATPINT, LOW);
+  float b = 0.0;
+  float tmp = 0.0;
+
+  for (byte i = 0; i < 4; i++) {
+    // Read 1.1V reference against AVcc
+    // set the reference to Vcc and the measurement to the internal 1.1V reference
+    #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+        ADMUX = _BV(REFS0) | _BV(MUX4) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+    #elif defined (__AVR_ATtiny24__) || defined(__AVR_ATtiny44__) || defined(__AVR_ATtiny84__)
+        ADMUX = _BV(MUX5) | _BV(MUX0);
+    #elif defined (__AVR_ATtiny25__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny85__)
+        ADMUX = _BV(MUX3) | _BV(MUX2);
+    #else
+        // works on an Arduino 168 or 328
+        ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+    #endif
+
+    delay(3); // Wait for Vref to settle
+    ADCSRA |= _BV(ADSC); // Start conversion
+    while (bit_is_set(ADCSRA,ADSC)); // measuring
+
+    uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH
+    uint8_t high = ADCH; // unlocks both
+
+    tmp = (high<<8) | low;
+    tmp = (typVbg * 1023.0) / tmp;
+    b = b + tmp;
+    delay(5);
+  }
+
+  b = b / i;
+  
   return (b);
 }
 
@@ -121,30 +149,7 @@ void senData () {
   //delay(20);
 
   gw.send(volumeMsgHot.set(hotPinCount));
-  
-  //delay(20);
-  
-  /*
-  if (!pcReceivedCold || !pcReceivedHot) {
-    digitalWrite(LED, HIGH);
-    delay(5);
-    digitalWrite(LED, LOW);
-    delay(50);
-    digitalWrite(LED, HIGH);
-    delay(5);
-    digitalWrite(LED, LOW);
-  }
-  */
-  //if (!pcReceivedCold) { //Last Pulsecount not yet received from controller, request it again
-  //  gw.request(CHILD_ID_COLD_W, S_WATER);
-  //  delay(10);
-  //}
-  //gw.process();
-  
-  //if (!pcReceivedHot) {
-  //  gw.request(CHILD_ID_HOT_W, S_WATER);
-  //  delay(10);
-  //}
+ 
   gw.process();
   
   //delay(10);
