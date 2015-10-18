@@ -32,7 +32,7 @@ byte t=LOW;
 float battV;
 volatile int v_prescalar=0;
 byte curPower;
-const float typVbg = 1.15;
+const float typVbg = 1.1;
 
 void incomingMessage(const MyMessage &message) {
   if (message.type==V_VOLUME/*V_VAR1*/) {
@@ -132,7 +132,7 @@ void senData () {
   //delay(20);
   gw.present(CHILD_ID_HOT_W, S_WATER);
   //delay(20);
-  gw.sendBatteryLevel(int((battV-LASTCALLVOLT)*PERCENTPERVOLT));
+  gw.sendBatteryLevel(int(battV*10));
   //delay(20);  //to let data be sent
   
   gw.request(CHILD_ID_COLD_W, V_VOLUME);

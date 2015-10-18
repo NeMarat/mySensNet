@@ -9,9 +9,9 @@
 #define HUMIDITY_SENSOR_DIGITAL_PIN 3
 
 // эту константу (typVbg) необходимо откалибровать индивидуально
-const float typVbg = 1.15;
+const float typVbg = 1.1;
 
-unsigned long SLEEP_TIME = 60000;
+unsigned long SLEEP_TIME = 300000;
 float lastTemperature;
 float lastHumidity;
 float temperature;
@@ -87,13 +87,13 @@ void loop() {
   if (humidity != lastHumidity) {
       lastHumidity = humidity;
       gw.send(msgHum.set(humidity, 1));
-      gw.sendBatteryLevel(readVcc());
+      gw.sendBatteryLevel(readVcc()*10);
   }
   
   if (temperature != lastTemperature) {
     lastTemperature = temperature;
     gw.send(msgTemp.set(temperature, 1));
-    gw.sendBatteryLevel(readVcc());
+    gw.sendBatteryLevel(readVcc()*10);
   }
 
   digitalWrite(2, LOW);
