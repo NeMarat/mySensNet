@@ -15,14 +15,15 @@
 #define MARS_OWN_PCB
 
 #include <SPI.h>
-#include <EEPROM.h>
 #include <MySensor.h>
-#include "counterSave.h"
+#include "myarveeprom.h"
 #include "arduWcount.h"
 
 MySensor gw;
 MyMessage volumeMsgCold(CHILD_ID_COLD_W, V_VOLUME);
 MyMessage volumeMsgHot(CHILD_ID_HOT_W, V_VOLUME);
+
+MyEeprom mem(MEMSTARTS, MEMENDS, MEMLENGTH, true);
 
 volatile unsigned long coldPinCount=0;
 volatile unsigned long hotPinCount=0;
@@ -59,8 +60,8 @@ void checkOut () {
   if (cPinState != t) {
     cPinState = t;
     coldPinCount++;
-    EEPROM.write(COLDPinStateMem, cPinState);
-    writeULong(coldPinCount, COLDCountMem);
+    mem.writeByte(cPinState, COLDPinStateMem);
+    mem.writeULong(coldPinCount, COLDCountMem);
   }
   digitalWrite(COLDPIN, LOW);
   
@@ -70,8 +71,8 @@ void checkOut () {
   if (hPinState != t) {
     hPinState = t;
     hotPinCount++;
-    EEPROM.write(HOTPinStateMem, hPinState);
-    writeULong(hotPinCount, HOTCountMem);  
+    mem.writeByte(hPinState, HOTPinStateMem);
+    mem.writeULong(hotPinCount, HOTCountMem);  
   }
   digitalWrite(HOTPIN,  LOW);
   analogWrite(LED, LOW);
@@ -80,8 +81,8 @@ void checkOut () {
 float baTest () {
   float b = 0.0;
   float tmp = 0.0;
-
-  for (byte i = 0; i < 4; i++) {
+  uint8_t i;
+  for (i = 0; i < 4; i++) {
     // Read 1.1V reference against AVcc
     // set the reference to Vcc and the measurement to the internal 1.1V reference
     #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -160,10 +161,10 @@ void senData () {
 void setup() 
 {
   //Serial.begin(115200);
-  cPinState = EEPROM.read(COLDPinStateMem);
-  hPinState = EEPROM.read(HOTPinStateMem);
-  coldPinCount = readULong(COLDCountMem);
-  hotPinCount =  readULong(HOTCountMem);
+  cPinState = mem.readByte(COLDPinStateMem);
+  hPinState = mem.readByte(HOTPinStateMem);
+  coldPinCount = mem.readULong(COLDCountMem);
+  hotPinCount =  mem.readULong(HOTCountMem);
   
   //if (coldPinCount == 0) { coldPinCount = 17995; }
   //if (hotPinCount == 0) { hotPinCount = 9799; }

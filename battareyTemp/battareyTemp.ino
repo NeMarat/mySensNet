@@ -79,21 +79,24 @@ void setup() {
 
 void loop() {
   digitalWrite(2, HIGH);
-  gw.process();
+  delay(20);
   delay(dht.getMinimumSamplingPeriod());
+  gw.process();
   temperature = dht.getTemperature();
   humidity = dht.getHumidity();
   
-  if (humidity != lastHumidity) {
+  if (!isnan(temperature) && !isnan(humidity)) {
+    if (humidity != lastHumidity) {
       lastHumidity = humidity;
       gw.send(msgHum.set(humidity, 1));
       gw.sendBatteryLevel(readVcc()*10);
-  }
+    }
   
-  if (temperature != lastTemperature) {
-    lastTemperature = temperature;
-    gw.send(msgTemp.set(temperature, 1));
-    gw.sendBatteryLevel(readVcc()*10);
+    if (temperature != lastTemperature) {
+      lastTemperature = temperature;
+      gw.send(msgTemp.set(temperature, 1));
+      gw.sendBatteryLevel(readVcc()*10);
+    }
   }
 
   digitalWrite(2, LOW);

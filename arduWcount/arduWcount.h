@@ -15,7 +15,7 @@
 #define LED        6
 
 #define BT_V      0.0035
-#define LOWVOLT   3.9
+#define LOWVOLT   3.5
 #define PERCENTPERVOLT 62.5 // 100 / (max volt - min)
 #define LASTCALLVOLT 2.9 
 
@@ -24,10 +24,14 @@
 
 //EEPROM addresses for data save
 // addr 0 is for future possible use
-#define COLDPinStateMem 512 //1
-#define HOTPinStateMem  513 //2
-#define COLDCountMem    514 //3 //datalength - 4 bytes: long type is used
-#define HOTCountMem     518 //7 //datalength - 4 bytes: long type is used
+#define MEMSTARTS       512
+#define MEMLENGTH       10
+#define MEMENDS         1023
+/*realtive addresses*/
+#define COLDPinStateMem 0 //1
+#define HOTPinStateMem  1 //2
+#define COLDCountMem    2 //3 //datalength - 4 bytes: long type is used
+#define HOTCountMem     6 //7 //datalength - 4 bytes: long type is used
 
 #endif
 
