@@ -62,8 +62,11 @@ float readVcc() {
 void setup() { 
   analogReference(DEFAULT);
   pinMode(2, OUTPUT);
+  pinMode(A3, OUTPUT);
   pinMode(3, INPUT);
   digitalWrite(2, HIGH);
+  digitalWrite(A3, HIGH);
+  delay(20);
   gw.begin();
   dht.setup(HUMIDITY_SENSOR_DIGITAL_PIN);
 
@@ -75,11 +78,15 @@ void setup() {
   gw.present(CHILD_ID_TEMP, S_TEMP);
   
   delay(20);
+  digitalWrite(2, LOW);
+  digitalWrite(A3, LOW);
 }
 
 void loop() {
+  digitalWrite(A3, HIGH);
   digitalWrite(2, HIGH);
   delay(20);
+  gw.begin();
   delay(dht.getMinimumSamplingPeriod());
   gw.process();
   temperature = dht.getTemperature();
@@ -100,5 +107,6 @@ void loop() {
   }
 
   digitalWrite(2, LOW);
+  digitalWrite(A3, LOW);
   gw.sleep(SLEEP_TIME);
 }

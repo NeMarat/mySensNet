@@ -52,9 +52,10 @@ void incomingMessage(const MyMessage &message) {
 }
 
 void checkOut () {
-  analogWrite(LED, 64);
+  digitalWrite(LED, HIGH);
   
-  digitalWrite(COLDPIN, HIGH);  
+  digitalWrite(COLDPIN, HIGH); 
+  digitalWrite(HOTPIN,  HIGH); 
   delay(3);
   t=digitalRead(COLDPIN);
   if (cPinState != t) {
@@ -63,9 +64,6 @@ void checkOut () {
     mem.writeByte(cPinState, COLDPinStateMem);
     mem.writeULong(coldPinCount, COLDCountMem);
   }
-  digitalWrite(COLDPIN, LOW);
-  
-  digitalWrite(HOTPIN,  HIGH);
   delay(3);
   t=digitalRead(HOTPIN);
   if (hPinState != t) {
@@ -75,7 +73,8 @@ void checkOut () {
     mem.writeULong(hotPinCount, HOTCountMem);  
   }
   digitalWrite(HOTPIN,  LOW);
-  analogWrite(LED, LOW);
+  digitalWrite(COLDPIN, LOW);
+  digitalWrite(LED, LOW);
 }
 
 float baTest () {
@@ -136,11 +135,11 @@ void senData () {
   gw.sendBatteryLevel(int(battV*10));
   //delay(20);  //to let data be sent
   
-  gw.request(CHILD_ID_COLD_W, V_VOLUME);
+  //gw.request(CHILD_ID_COLD_W, V_VOLUME);
   //delay(10);
   //gw.process();
   //delay(20);
-  gw.request(CHILD_ID_HOT_W, V_VOLUME);
+  //gw.request(CHILD_ID_HOT_W, V_VOLUME);
   //delay(10);
   //gw.process();
   //delay(20);
