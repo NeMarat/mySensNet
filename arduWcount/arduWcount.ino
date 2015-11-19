@@ -52,10 +52,10 @@ void incomingMessage(const MyMessage &message) {
 }
 
 void checkOut () {
-  digitalWrite(LED, HIGH);
+  analogWrite(LED, 32);
   
-  digitalWrite(COLDPIN, HIGH); 
-  digitalWrite(HOTPIN,  HIGH); 
+  //digitalWrite(COLDPIN, HIGH); 
+  //digitalWrite(HOTPIN,  HIGH); 
   delay(3);
   t=digitalRead(COLDPIN);
   if (cPinState != t) {
@@ -72,9 +72,9 @@ void checkOut () {
     mem.writeByte(hPinState, HOTPinStateMem);
     mem.writeULong(hotPinCount, HOTCountMem);  
   }
-  digitalWrite(HOTPIN,  LOW);
-  digitalWrite(COLDPIN, LOW);
-  digitalWrite(LED, LOW);
+  //digitalWrite(HOTPIN,  LOW);
+  //digitalWrite(COLDPIN, LOW);
+  analogWrite(LED, 0);
 }
 
 float baTest () {
@@ -178,7 +178,7 @@ void setup()
   digitalWrite(BATPINT, LOW);
   digitalWrite(POWPASPIN, LOW);
   digitalWrite(POW3_3PIN, HIGH);
-  digitalWrite(LED, HIGH);
+  analogWrite(LED, 32);
 
   gw.begin(incomingMessage);
   gw.sendSketchInfo("Water Meter", "2.0");
@@ -187,7 +187,7 @@ void setup()
   //gw.request(CHILD_ID_COLD_W, V_VAR1);
   //gw.request(CHILD_ID_HOT_W, V_VAR1);
   digitalWrite(POW3_3PIN, LOW);
-  digitalWrite(LED, LOW);  
+  analogWrite(LED, 0);  
 }
 
 void loop() 
@@ -197,11 +197,11 @@ void loop()
   v_prescalar++;
   
   if (v_prescalar >= SLEEPS_SENS) { //its time to radio
-    analogWrite(LED, 64);
+    analogWrite(LED, 32);
     //digitalWrite(LED, HIGH);
     senData();
     v_prescalar=0;
-    digitalWrite(LED, LOW);
+    analogWrite(LED, 0);
   }
   //if (pcReceivedCold && pcReceivedHot) {
     gw.sleep(TIME_SLEEP);
