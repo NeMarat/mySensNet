@@ -54,8 +54,7 @@ void incomingMessage(const MyMessage &message) {
 void checkOut () {
   analogWrite(LED, 32);
   
-  //digitalWrite(COLDPIN, HIGH); 
-  //digitalWrite(HOTPIN,  HIGH); 
+  digitalWrite(COLDPIN, HIGH); 
   delay(3);
   t=digitalRead(COLDPIN);
   if (cPinState != t) {
@@ -64,6 +63,8 @@ void checkOut () {
     mem.writeByte(cPinState, COLDPinStateMem);
     mem.writeULong(coldPinCount, COLDCountMem);
   }
+  digitalWrite(COLDPIN, LOW);
+  digitalWrite(HOTPIN,  HIGH);
   delay(3);
   t=digitalRead(HOTPIN);
   if (hPinState != t) {
@@ -72,8 +73,7 @@ void checkOut () {
     mem.writeByte(hPinState, HOTPinStateMem);
     mem.writeULong(hotPinCount, HOTCountMem);  
   }
-  //digitalWrite(HOTPIN,  LOW);
-  //digitalWrite(COLDPIN, LOW);
+  digitalWrite(HOTPIN,  LOW);
   analogWrite(LED, 0);
 }
 
@@ -160,8 +160,8 @@ void senData () {
 void setup() 
 {
   //Serial.begin(115200);
-  cPinState = mem.readByte(COLDPinStateMem);
-  hPinState = mem.readByte(HOTPinStateMem);
+  //cPinState = mem.readByte(COLDPinStateMem);
+  //hPinState = mem.readByte(HOTPinStateMem);
   coldPinCount = mem.readULong(COLDCountMem);
   hotPinCount =  mem.readULong(HOTCountMem);
   
@@ -179,6 +179,17 @@ void setup()
   digitalWrite(POWPASPIN, LOW);
   digitalWrite(POW3_3PIN, HIGH);
   analogWrite(LED, 32);
+  
+  digitalWrite(COLDPIN, HIGH); 
+  delay(3);
+  cPinState=digitalRead(COLDPIN);
+  digitalWrite(COLDPIN, LOW);
+  digitalWrite(HOTPIN,  HIGH);
+  delay(3);
+  hPinState=digitalRead(HOTPIN);
+  digitalWrite(HOTPIN, LOW);
+  
+  
 
   gw.begin(incomingMessage);
   gw.sendSketchInfo("Water Meter", "2.0");
