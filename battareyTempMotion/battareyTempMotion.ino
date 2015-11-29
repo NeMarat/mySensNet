@@ -15,9 +15,9 @@
 #define POMP_SENSOR_PIN 4
 #define NRF_PIN 7
 #define NRF_33_PIN 6
-#define SLEEP_TIME 10000 // 10 sec to sleep
-#define TEMP_MEASURE 30 // measure temp and send every 5 minutes: SLEEP_TIME * TEMP_MEASURE
-#define MAX_PIR_RESEND_TIME 18 // do not send PIR data more often than 1 time per 3 minutes
+#define SLEEP_TIME 1000 // 1 sec to sleep
+#define TEMP_MEASURE 300 // measure temp and send every 5 minutes: SLEEP_TIME * TEMP_MEASURE
+#define MAX_PIR_RESEND_TIME 180 // do not send PIR data more often than 1 time per 3 minutes
 
 int lastPirSend;
 int lastTempMeasured;
@@ -38,7 +38,7 @@ boolean metric = true;
 MyMessage msgHum(CHILD_ID_HUM, V_HUM);
 MyMessage msgTemp(CHILD_ID_TEMP, V_TEMP);
 MyMessage msgPir(CHILD_ID_PIR, V_TRIPPED);
-MyMessage msgPomp(CHILD_ID_POMP, V_TRIPPED);
+MyMessage msgPomp(CHILD_ID_POMP, V_LIGHT);
 
 float baTest () {
   float b = 0.0;
@@ -94,13 +94,13 @@ void gwSend () {
       gw.send(msgPomp.set(0));
     };
     if (!isnan(temperature) && !isnan(humidity)) {
-      if (humidity != lastHumidity) {
-        lastHumidity = humidity;
-        gw.send(msgHum.set(humidity, 1));
-      }
       if (temperature != lastTemperature) {
         lastTemperature = temperature;
         gw.send(msgTemp.set(temperature, 1));
+      }
+      if (humidity != lastHumidity) {
+        lastHumidity = humidity;
+        gw.send(msgHum.set(humidity, 1));
       }
     }
 };
@@ -118,11 +118,17 @@ void gwSendPir() {
 };
 
 void pirWakeUp() {
-  tripped=true;
+  if (digitalRead(PIR_SENSOR_PIN) == HIGH) {
+    tripped=true; 
+  } else {
+    tripped=false;
+  }
+  /*
   gwPresent();
   gwSendPir();
   delay(10);
   digitalWrite(nrfPin, LOW);
+  */
 };
 
 void setup() { 
@@ -137,6 +143,7 @@ void setup() {
   gw.present(CHILD_ID_HUM, S_HUM);
   gw.present(CHILD_ID_TEMP, S_TEMP);
   gw.present(CHILD_ID_PIR, S_MOTION);
+  gw.present(CHILD_ID_POMP, S_LIGHT);
   gw.sendBatteryLevel(int(baTest()*10));
   gw.process();
   dht.setup(HUMIDITY_SENSOR_PIN);
