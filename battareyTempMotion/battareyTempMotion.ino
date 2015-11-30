@@ -1,5 +1,6 @@
 #define NOT_AN_INTERRUPT -1
 
+#include <avr/wdt.h>
 #include <SPI.h> 
 #include <DHT.h>  
 #include <Arduino.h>
@@ -87,12 +88,13 @@ void gwPresent () {
   gw.begin();
 };
 
+void gwSendPomp() {
+  if (pompState == HIGH) { gw.send(msgPomp.set(1)); } 
+   else { gw.send(msgPomp.set(0)); };
+};
+
 void gwSend () {
-    if (pompState == HIGH) {
-      gw.send(msgPomp.set(1));
-    } else {
-      gw.send(msgPomp.set(0));
-    };
+    gwSendPomp();
     if (!isnan(temperature) && !isnan(humidity)) {
       if (temperature != lastTemperature) {
         lastTemperature = temperature;
@@ -123,12 +125,6 @@ void pirWakeUp() {
   } else {
     tripped=false;
   }
-  /*
-  gwPresent();
-  gwSendPir();
-  delay(10);
-  digitalWrite(nrfPin, LOW);
-  */
 };
 
 void setup() { 
@@ -145,6 +141,8 @@ void setup() {
   gw.present(CHILD_ID_PIR, S_MOTION);
   gw.present(CHILD_ID_POMP, S_LIGHT);
   gw.sendBatteryLevel(int(baTest()*10));
+  pompState=digitalRead(POMP_SENSOR_PIN);
+  gwSendPomp();
   gw.process();
   dht.setup(HUMIDITY_SENSOR_PIN);
   lastPirSend=0;
@@ -153,9 +151,11 @@ void setup() {
   lastPompState=LOW;
   digitalWrite(HUMIDITY_POWER_PIN, LOW);
   digitalWrite(nrfPin, LOW);
+  wdt_enable(WDTO_8S);
 }
 
 void loop() {
+  wdt_reset();
   lastTempMeasured++;
   lastPirSend++;
   if (lastPirState != tripped) {
@@ -167,11 +167,7 @@ void loop() {
   pompState=digitalRead(POMP_SENSOR_PIN);
   if (lastPompState != pompState){
     gwPresent();
-    if (pompState == HIGH) {
-      gw.send(msgPomp.set(1));
-    } else {
-      gw.send(msgPomp.set(0));
-    };
+    gwSendPomp();
     lastPompState = pompState;
     digitalWrite(nrfPin, LOW);
   };
