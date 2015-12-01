@@ -1,9 +1,7 @@
 #define NOT_AN_INTERRUPT -1
 
-#include <avr/wdt.h>
 #include <SPI.h> 
 #include <DHT.h>  
-#include <Arduino.h>
 #include <MySensor.h> 
 
 #define CHILD_ID_HUM 0
@@ -20,18 +18,18 @@
 #define TEMP_MEASURE 300 // measure temp and send every 5 minutes: SLEEP_TIME * TEMP_MEASURE
 #define MAX_PIR_RESEND_TIME 180 // do not send PIR data more often than 1 time per 3 minutes
 
-int lastPirSend;
-int lastTempMeasured;
-byte pompState;
-byte lastPompState;
-byte nrfPin;
-boolean lastPirState;
-float lastTemperature;
-float lastHumidity;
+volatile int lastPirSend;
+volatile int lastTempMeasured;
+volatile byte pompState;
+volatile byte lastPompState;
+volatile byte nrfPin;
+volatile boolean lastPirState;
+volatile float lastTemperature;
+volatile float lastHumidity;
 float temperature;
 float humidity;
 const float typVbg = 1.1;
-boolean tripped;
+volatile boolean tripped;
 
 DHT dht;
 MySensor gw;
@@ -39,7 +37,7 @@ boolean metric = true;
 MyMessage msgHum(CHILD_ID_HUM, V_HUM);
 MyMessage msgTemp(CHILD_ID_TEMP, V_TEMP);
 MyMessage msgPir(CHILD_ID_PIR, V_TRIPPED);
-MyMessage msgPomp(CHILD_ID_POMP, V_LIGHT);
+MyMessage msgPomp(CHILD_ID_POMP, V_TRIPPED);
 
 float baTest () {
   float b = 0.0;
@@ -78,11 +76,8 @@ float baTest () {
 }
 
 void gwPresent () {
-  if (baTest() > 3.4) {
-    nrfPin=NRF_PIN;
-  } else {
-    nrfPin=NRF_33_PIN;
-  };
+  if (baTest() > 3.4) { nrfPin=NRF_PIN; } 
+   else { nrfPin=NRF_33_PIN; }
   digitalWrite(nrfPin, HIGH);
   delay(100);
   gw.begin();
@@ -90,11 +85,17 @@ void gwPresent () {
 
 void gwSendPomp() {
   if (pompState == HIGH) { gw.send(msgPomp.set(1)); } 
-   else { gw.send(msgPomp.set(0)); };
+   else { gw.send(msgPomp.set(0)); }
+};
+
+void gwSendPir() {    
+      if (tripped) {
+        gw.send(msgPir.set(1));
+        tripped=false;
+      } else { gw.send(msgPir.set(0)); }
 };
 
 void gwSend () {
-    gwSendPomp();
     if (!isnan(temperature) && !isnan(humidity)) {
       if (temperature != lastTemperature) {
         lastTemperature = temperature;
@@ -103,18 +104,6 @@ void gwSend () {
       if (humidity != lastHumidity) {
         lastHumidity = humidity;
         gw.send(msgHum.set(humidity, 1));
-      }
-    }
-};
-
-void gwSendPir() {
-    if (lastPirSend >= MAX_PIR_RESEND_TIME) {
-      lastPirSend = 0;
-      if (tripped) {
-        gw.send(msgPir.set(1));
-        tripped=false;
-      } else {
-        gw.send(msgPir.set(0));
       }
     }
 };
@@ -134,8 +123,10 @@ void setup() {
   pinMode(HUMIDITY_POWER_PIN, OUTPUT);
   digitalWrite(HUMIDITY_POWER_PIN, HIGH);
   attachInterrupt(digitalPinToInterrupt(PIR_SENSOR_PIN), pirWakeUp, CHANGE);
+  pompState=LOW;
+  lastPompState=LOW;
   gwPresent();
-  gw.sendSketchInfo("Outdoor PIR sensor", "2.0");
+  gw.sendSketchInfo("Outdoor PIR sensor", "2.1");
   gw.present(CHILD_ID_HUM, S_HUM);
   gw.present(CHILD_ID_TEMP, S_TEMP);
   gw.present(CHILD_ID_PIR, S_MOTION);
@@ -147,39 +138,42 @@ void setup() {
   dht.setup(HUMIDITY_SENSOR_PIN);
   lastPirSend=0;
   lastTempMeasured=0;
-  pompState=LOW;
-  lastPompState=LOW;
   digitalWrite(HUMIDITY_POWER_PIN, LOW);
   digitalWrite(nrfPin, LOW);
-  wdt_enable(WDTO_8S);
+  //wdt_enable(WDTO_8S);
 }
 
 void loop() {
-  wdt_reset();
+  //wdt_reset();
   lastTempMeasured++;
   lastPirSend++;
-  if (lastPirState != tripped) {
+  if (lastPirState != tripped && (lastPirSend >= MAX_PIR_RESEND_TIME || tripped == true)) {
     lastPirState=tripped;
+    lastPirSend = 0;
     gwPresent();
     gwSendPir();
+    gw.process();
     digitalWrite(nrfPin, LOW);
   }
   pompState=digitalRead(POMP_SENSOR_PIN);
   if (lastPompState != pompState){
     gwPresent();
     gwSendPomp();
+    gw.process();
     lastPompState = pompState;
     digitalWrite(nrfPin, LOW);
   };
   if (lastTempMeasured >= TEMP_MEASURE) {
-    digitalWrite(HUMIDITY_POWER_PIN, HIGH);
     gwPresent();
     gw.sendBatteryLevel(int(baTest()*10));
-    gw.process();
+    digitalWrite(HUMIDITY_POWER_PIN, HIGH);
+    delay(dht.getMinimumSamplingPeriod());
     temperature = dht.getTemperature();
     humidity = dht.getHumidity();
     gwSend(); 
     gwSendPir(); 
+    gwSendPomp();
+    gw.process();
     delay(10);
     digitalWrite(HUMIDITY_POWER_PIN, LOW);
     digitalWrite(nrfPin, LOW);
