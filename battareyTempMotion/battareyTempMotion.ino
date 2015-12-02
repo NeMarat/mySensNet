@@ -79,7 +79,7 @@ void gwPresent () {
   if (baTest() > 3.4) { nrfPin=NRF_PIN; } 
    else { nrfPin=NRF_33_PIN; }
   digitalWrite(nrfPin, HIGH);
-  delay(100);
+  delay(50);
   gw.begin();
 };
 
