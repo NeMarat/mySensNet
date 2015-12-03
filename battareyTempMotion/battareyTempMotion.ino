@@ -75,9 +75,11 @@ float baTest () {
   return (b);
 }
 
-void gwPresent () {
-  if (baTest() > 3.4) { nrfPin=NRF_PIN; } 
-   else { nrfPin=NRF_33_PIN; }
+void gwPresent (byte powerPin = 0) {
+  if (powerPin == 0) {
+    if (baTest() > 3.4) { nrfPin=NRF_PIN; } 
+     else { nrfPin=NRF_33_PIN; }
+  } else { nrfPin = powerPin; }
   digitalWrite(nrfPin, HIGH);
   delay(50);
   gw.begin();
@@ -157,7 +159,8 @@ void loop() {
   }
   pompState=digitalRead(POMP_SENSOR_PIN);
   if (lastPompState != pompState){
-    gwPresent();
+    if (pompState == HIGH) { gwPresent(NRF_PIN); }
+     else { gwPresent(); }
     gwSendPomp();
     gw.process();
     lastPompState = pompState;
