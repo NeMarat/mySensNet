@@ -1,4 +1,5 @@
 #define NOT_AN_INTERRUPT -1
+#define VILLA
 
 #include <SPI.h> 
 #include <DHT.h>  
