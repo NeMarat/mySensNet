@@ -1,9 +1,11 @@
 #include <SPI.h>
 #include <MySensor.h>  
 #include <RCSwitch.h>
+#include "weatherOregon.h"
 
 #define CHILD_ID_LED 0
 #define CHILD_ID_433 1
+#define CHILD_ID_ORG 2
 #define LED_PIN 5
 #define FADE_DELAY 10
 
@@ -52,6 +54,7 @@ void incomingMessage(const MyMessage &message) {
 void setup() { 
   pinMode(LED_PIN, OUTPUT);
   mySwitch.enableReceive(0);  // Receiver on inerrupt 0 => that is pin #2
+  attachInterrupt(1, oregonrd, CHANGE);
   gw.begin(incomingMessage);  
   gw.sendSketchInfo("Led driver", "2.0");
   gw.present(CHILD_ID_LED, S_DIMMER);
@@ -65,4 +68,16 @@ void loop() {
     gw.send(msg433.set(mySwitch.getReceivedValue()));
     mySwitch.resetAvailable();
   }
+  cli();
+    word p = pulse;
+    pulse = 0;
+  sei();
+  if (p != 0)
+   {
+      if (orscV2.nextPulse(p))
+      {
+         String vData = reportSerial("OSV2", orscV2);
+         Serial.println(vData);
+      }
+   }
 }
