@@ -5,17 +5,27 @@
 
 #define CHILD_ID_LED 0
 #define CHILD_ID_433 1
-#define CHILD_ID_ORG 2
+#define CHILD_ID_ORT 2
+#define CHILD_ID_ORH 3
+#define CHILD_ID_ORB 4
 #define LED_PIN 5
 #define FADE_DELAY 10
 
 uint8_t led;
+uint8_t pos;
+uint16_t p;
+uint8_t* dt;
+
+OregonDecoderV2 orscV2;
 
 MySensor gw;
 RCSwitch mySwitch = RCSwitch();
 boolean metric = true;
 MyMessage lightMsg(CHILD_ID_LED, V_DIMMER);
 MyMessage msg433(CHILD_ID_433, V_VAR1);
+MyMessage oregonT(CHILD_ID_ORT, V_TEMP);
+MyMessage oregonH(CHILD_ID_ORH, V_HUM);
+MyMessage oregonB(CHILD_ID_ORB, V_VAR2);
 
 /***
  *  This method provides a graceful fade up/down effect
@@ -60,6 +70,9 @@ void setup() {
   gw.present(CHILD_ID_LED, S_DIMMER);
   gw.present(CHILD_ID_433, S_CUSTOM);
   gw.request(CHILD_ID_LED, V_DIMMER);
+  gw.present(CHILD_ID_ORT, S_TEMP);
+  gw.present(CHILD_ID_ORH, S_HUM);
+  gw.present(CHILD_ID_ORB, S_CUSTOM);
 }
 
 void loop() {
@@ -68,16 +81,16 @@ void loop() {
     gw.send(msg433.set(mySwitch.getReceivedValue()));
     mySwitch.resetAvailable();
   }
-  cli();
-    word p = pulse;
-    pulse = 0;
-  sei();
-  if (p != 0)
-   {
-      if (orscV2.nextPulse(p))
-      {
-         String vData = reportSerial("OSV2", orscV2);
-         Serial.println(vData);
+  
+  p = pulse;
+  pulse = 0;
+  if (p != 0) {
+      if (orscV2.nextPulse(p)) {
+         dt = orscV2.getData(pos);
+         gw.send(oregonT.set(temperature(dt), 2));
+         gw.send(oregonH.set(humidity(dt)));
+         gw.send(oregonB.set(battery(dt)));
+         orscV2.resetDecoder();
       }
    }
 }
