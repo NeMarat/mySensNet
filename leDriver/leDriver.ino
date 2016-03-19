@@ -12,9 +12,7 @@
 #define FADE_DELAY 10
 
 uint8_t led;
-uint8_t pos;
-uint16_t p;
-uint8_t* dt;
+word p;
 
 OregonDecoderV2 orscV2;
 
@@ -57,7 +55,7 @@ void incomingMessage(const MyMessage &message) {
     fadeToLevel( requestedLevel );
     
     // Inform the gateway of the current DimmableLED's SwitchPower1 and LoadLevelStatus value...
-    gw.send(lightMsg.set(led));
+    //gw.send(lightMsg.set(led));
   }
 }
 
@@ -81,15 +79,20 @@ void loop() {
     gw.send(msg433.set(mySwitch.getReceivedValue()));
     mySwitch.resetAvailable();
   }
-  
+  //cli();
   p = pulse;
   pulse = 0;
+  //sei();
   if (p != 0) {
       if (orscV2.nextPulse(p)) {
-         dt = orscV2.getData(pos);
-         gw.send(oregonT.set(temperature(dt), 2));
-         gw.send(oregonH.set(humidity(dt)));
-         gw.send(oregonB.set(battery(dt)));
+         byte pos;
+         const byte * dt = orscV2.getData(pos);
+         //Serial.println(humidity(dt));
+         if(dt[0] == 0xEA && dt[1] == 0x4C) {
+           gw.send(oregonT.set(temperature(dt), 2));
+           gw.send(oregonH.set(humidity(dt)));
+           gw.send(oregonB.set(battery(dt)));
+         }
          orscV2.resetDecoder();
       }
    }

@@ -1,20 +1,23 @@
 #ifndef _WEATHER_OREGON_H_
 #define _WEATHER_OREGON_H_
 
-volatile uint16_t pulse;
+volatile word pulse;
+/*
+https://github.com/phardy/WeatherStation
+*/
 
 class DecodeOOK 
 {
    protected:
-      uint8_t total_bits, bits, flip, state, pos, data[25];
-      virtual uint8_t decode(word width) = 0;
+      byte total_bits, bits, flip, state, pos, data[25];
+      virtual char decode(word width) = 0;
    public:
 
 enum { UNKNOWN, T0, T1, T2, T3, OK, DONE };
 
 DecodeOOK () { resetDecoder(); }
 
-bool nextPulse(uint16_t width) 
+bool nextPulse(word width) 
       {
          if (state != DONE)
             switch (decode(width)) 
@@ -27,7 +30,8 @@ bool nextPulse(uint16_t width)
 
 bool isDone () const { return state == DONE; }
 
-uint8_t* getData (uint8_t& count) {
+const byte* getData (byte& count) const 
+      {
          count = pos;
          return data;
       }
@@ -39,10 +43,10 @@ void resetDecoder()
       }
 
       // add one bit to the packet data buffer
-virtual void gotBit (uint8_t value) 
+virtual void gotBit (char value) 
       {
          total_bits++;
-         uint8_t *ptr = data + pos;
+         byte *ptr = data + pos;
          *ptr = (*ptr >> 1) | (value << 7);
 
          if (++bits >= 8) 
@@ -58,20 +62,20 @@ virtual void gotBit (uint8_t value)
       }
 
       // store a bit using Manchester encoding
-void manchester(uint8_t value) 
+void manchester(char value) 
       {
          flip ^= value; // manchester code, long pulse flips the bit
          gotBit(flip);
       }
 
       // move bits to the front so that all the bits are aligned to the end
-void alignTail(uint8_t max =0) 
+void alignTail(byte max =0) 
       {
          // align bits
          if (bits != 0) 
          {
             data[pos] >>= 8 - bits;
-            for (uint8_t i = 0; i < pos; ++i)
+            for (byte i = 0; i < pos; ++i)
                data[i] = (data[i] >> bits) | (data[i+1] << (8 - bits));
             bits = 0;
          }
@@ -79,19 +83,19 @@ void alignTail(uint8_t max =0)
          // optionally shift bytes down if there are too many of 'em
          if (max > 0 && pos > max) 
          {
-            uint8_t n = pos - max;
+            byte n = pos - max;
             pos = max;
-            for (uint8_t i = 0; i < pos; ++i)
+            for (byte i = 0; i < pos; ++i)
                data[i] = data[i+n];
          }
       }
 
 void reverseBits() 
       {
-         for (uint8_t i = 0; i < pos; ++i) 
+         for (byte i = 0; i < pos; ++i) 
          {
-            uint8_t b = data[i];
-            for (uint8_t j = 0; j < 8; ++j) 
+            byte b = data[i];
+            for (byte j = 0; j < 8; ++j) 
             {
                data[i] = (data[i] << 1) | (b & 1);
                b >>= 1;
@@ -101,7 +105,7 @@ void reverseBits()
 
 void reverseNibbles() 
       {
-         for (uint8_t i = 0; i < pos; ++i)
+         for (byte i = 0; i < pos; ++i)
             data[i] = (data[i] << 4) | (data[i] >> 4);
       }
 
@@ -119,7 +123,7 @@ class OregonDecoderV2 : public DecodeOOK
   OregonDecoderV2() {}
 
       // add one bit to the packet data buffer
-  virtual void gotBit (uint8_t value) 
+  virtual void gotBit (char value) 
       {
          if(!(total_bits & 0x01))
          {
@@ -137,7 +141,7 @@ class OregonDecoderV2 : public DecodeOOK
          state = OK;
       }
 
-  virtual uint8_t decode(word width) 
+  virtual char decode(word width) 
       {
          if (200 <= width && width < 1200) 
          {
@@ -205,31 +209,32 @@ class OregonDecoderV2 : public DecodeOOK
 
 void oregonrd(void)
 {
-   static uint16_t last;
+   static word last;
    pulse = micros() - last;
    last += pulse;
 }
 
-float temperature(uint8_t * data)
+float temperature(const byte* data)
 {
    int8_t sign = (data[6]&0x8) ? -1 : 1;
    float temp = ((data[5]&0xF0) >> 4)*10 + (data[5]&0xF) + (((data[4]&0xF0) >> 4) / 10.0);
    return (sign * temp);
 }
 
-uint8_t humidity(uint8_t * data)
+byte humidity(const byte* data)
 {
    return (data[7]&0xF) * 10 + ((data[6]&0xF0) >> 4);
 }
 
-uint8_t battery(uint8_t* data)
+// Ne retourne qu'un apercu de l'etat de la baterie : 10 = faible
+byte battery(const byte* data)
 {
    return (data[4] & 0x4) ? 10 : 90;
 }
 
-uint8_t channel(uint8_t* data)
+byte channel(const byte* data)
 {
-   uint8_t channel;
+   byte channel;
    switch (data[2])
    {
       case 0x10:
@@ -243,6 +248,6 @@ uint8_t channel(uint8_t* data)
          break;
    }
  return channel;
-} 
+}  
 
 #endif
