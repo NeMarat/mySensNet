@@ -60,11 +60,11 @@
 #include <SPI.h>  
 
 #include <MySigningNone.h>
-//#include <MyTransportRFM69.h>
+#include <MyTransportRFM69.h>
 #include <MyTransportNRF24.h>
 #include <MyHwATMega328.h>
 #include <MySigningAtsha204Soft.h>
-//#include <MySigningAtsha204.h>
+#include <MySigningAtsha204.h>
 
 #include <MyParserSerial.h>  
 #include <MySensor.h>  
@@ -86,6 +86,10 @@
 #define RADIO_CE_PIN        9  // radio chip enable
 #define RADIO_SPI_SS_PIN    8  // radio SPI serial select
 
+#define RADIO_ERROR_LED_PIN 7  // Error led pin
+#define RADIO_RX_LED_PIN    8  // Receive led pin
+#define RADIO_TX_LED_PIN    9  // the PCB, on board LED
+
 
 // NRFRF24L01 radio driver (set low transmit power by default) 
 MyTransportNRF24 transport(RADIO_CE_PIN, RADIO_SPI_SS_PIN, RF24_PA_LEVEL_GW);  
@@ -99,7 +103,13 @@ MyTransportNRF24 transport(RADIO_CE_PIN, RADIO_SPI_SS_PIN, RF24_PA_LEVEL_GW);
 // Hardware profile 
 MyHwATMega328 hw;
 
+// Construct MySensors library (signer needed if MY_SIGNING_FEATURE is turned on in MyConfig.h)
+// To use LEDs blinking, uncomment WITH_LEDS_BLINKING in MyConfig.h
+#ifdef WITH_LEDS_BLINKING
+MySensor gw(transport, hw /*, signer*/, RADIO_RX_LED_PIN, RADIO_TX_LED_PIN, RADIO_ERROR_LED_PIN);
+#else
 MySensor gw(transport, hw /*, signer*/);
+#endif
 
 
 #define IP_PORT 5003        // The port you want to open 
@@ -167,7 +177,7 @@ void loop() {
        output(PSTR("0;0;%d;0;%d;Gateway startup complete.\n"),  C_INTERNAL, I_GATEWAY_READY);
      }
    }
-   		 
+        
    if (client) {
      if (!client.connected()) {
        client.stop();
@@ -201,6 +211,7 @@ void loop() {
     }
   }
 }
+
 
 
 
