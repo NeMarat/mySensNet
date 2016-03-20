@@ -35,7 +35,7 @@ void fadeToLevel( int toLevel ) {
   while ( led != toLevel ) {
     led += delta;
     analogWrite( LED_PIN, (int)(led / 100. * 255) );
-    delay( FADE_DELAY );
+    //delay( FADE_DELAY );
   }
 }
 
@@ -55,7 +55,7 @@ void incomingMessage(const MyMessage &message) {
     fadeToLevel( requestedLevel );
     
     // Inform the gateway of the current DimmableLED's SwitchPower1 and LoadLevelStatus value...
-    //gw.send(lightMsg.set(led));
+    gw.send(lightMsg.set(led));
   }
 }
 
@@ -64,7 +64,7 @@ void setup() {
   mySwitch.enableReceive(0);  // Receiver on inerrupt 0 => that is pin #2
   attachInterrupt(1, oregonrd, CHANGE);
   gw.begin(incomingMessage);  
-  gw.sendSketchInfo("Led driver", "2.0");
+  gw.sendSketchInfo("Led driver", "2.1");
   gw.present(CHILD_ID_LED, S_DIMMER);
   gw.present(CHILD_ID_433, S_CUSTOM);
   gw.request(CHILD_ID_LED, V_DIMMER);
@@ -89,7 +89,7 @@ void loop() {
          const byte * dt = orscV2.getData(pos);
          //Serial.println(humidity(dt));
          if(dt[0] == 0xEA && dt[1] == 0x4C) {
-           gw.send(oregonT.set(temperature(dt), 2));
+           gw.send(oregonT.set(temperature(dt), 1));
            gw.send(oregonH.set(humidity(dt)));
            gw.send(oregonB.set(battery(dt)));
          }
