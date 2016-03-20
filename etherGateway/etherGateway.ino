@@ -83,8 +83,8 @@
 #define INCLUSION_MODE_TIME 1 // Number of minutes inclusion mode is enabled
 #define INCLUSION_MODE_PIN  3 // Digital pin used for inclusion mode button
 
-#define RADIO_CE_PIN        8  // radio chip enable
-#define RADIO_SPI_SS_PIN    9  // radio SPI serial select
+#define RADIO_CE_PIN        9  // radio chip enable
+#define RADIO_SPI_SS_PIN    8  // radio SPI serial select
 
 
 // NRFRF24L01 radio driver (set low transmit power by default) 
