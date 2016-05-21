@@ -6,10 +6,11 @@
 byte cmd[9] = {0xFF,0x01,0x86,0x00,0x00,0x00,0x00,0x00,0x79}; 
 unsigned char response[9];
 
-uint64_t SLEEP_TIME = 180000;
+uint64_t SLEEP_TIME = 30000;
 uint64_t nowTime;
 uint64_t lastSend;
 uint32_t coPpm;
+uint32_t lastPpm;
 uint32_t responseHigh;
 uint32_t responseLow;
 bool sendTime;
@@ -19,15 +20,14 @@ byte crc = 0;
 MySensor gw;
 boolean metric = true;
 MyMessage msgCo(CHILD_ID_CO, V_LEVEL);
-//MyMessage msgHEX(6, V_VAR1);
 
 void setup() { 
   gw.begin();
   Serial.begin(9600);
   gw.sendSketchInfo("CO2 sensor", "1.1");
   gw.present(CHILD_ID_CO, S_AIR_QUALITY);
-  //gw.present(6, S_IR);
   lastSend=millis();
+  lastPpm=0;
 }
 
 void loop() {
@@ -46,15 +46,17 @@ void loop() {
   crc = 255 - crc;
   crc++;
 
-  if ( !(response[0] == 0xFF && response[1] == 0x86 /* && response[8] == crc */) ) {
+  if ( !(response[0] == 0xFF && response[1] == 0x86) ) {
     coPpm=0;
   } else {
     responseHigh = (unsigned int) response[2];
     responseLow = (unsigned int) response[3];
     coPpm=(256*responseHigh) + responseLow;
+    if (lastPpm != coPpm) {
+      gw.send(msgCo.set(coPpm)); 
+      lastPpm=coPpm;
+    }
   }
-  gw.send(msgCo.set(coPpm)); 
-  //gw.send(msgHEX.set(response, 9)); 
   }
 }
 
