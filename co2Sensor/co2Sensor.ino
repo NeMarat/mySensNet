@@ -1,3 +1,4 @@
+#include <SPI.h>
 #include <MySensor.h>  
 
 #define CHILD_ID_CO 0
@@ -13,17 +14,19 @@ uint32_t responseHigh;
 uint32_t responseLow;
 bool sendTime;
 uint8_t i; 
-int8_t crc = 0;
+byte crc = 0;
 
 MySensor gw;
 boolean metric = true;
 MyMessage msgCo(CHILD_ID_CO, V_LEVEL);
+//MyMessage msgHEX(6, V_VAR1);
 
 void setup() { 
   gw.begin();
   Serial.begin(9600);
   gw.sendSketchInfo("CO2 sensor", "1.1");
   gw.present(CHILD_ID_CO, S_AIR_QUALITY);
+  //gw.present(6, S_IR);
   lastSend=millis();
 }
 
@@ -43,14 +46,15 @@ void loop() {
   crc = 255 - crc;
   crc++;
 
-  if ( !(response[0] == 0xFF && response[1] == 0x86 && response[8] == crc) ) {
+  if ( !(response[0] == 0xFF && response[1] == 0x86 /* && response[8] == crc */) ) {
     coPpm=0;
   } else {
     responseHigh = (unsigned int) response[2];
     responseLow = (unsigned int) response[3];
     coPpm=(256*responseHigh) + responseLow;
   }
-  gw.send(msgCo.set(coPpm));  
+  gw.send(msgCo.set(coPpm)); 
+  //gw.send(msgHEX.set(response, 9)); 
   }
 }
 
