@@ -7,7 +7,7 @@
 byte cmd[9] = {0xFF,0x01,0x86,0x00,0x00,0x00,0x00,0x00,0x79}; 
 unsigned char response[9];
 
-uint64_t SLEEP_TIME = 50000;
+uint64_t SLEEP_TIME = 20000;
 uint64_t nowTime;
 uint64_t lastSend;
 uint32_t coPpm;
