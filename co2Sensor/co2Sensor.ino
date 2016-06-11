@@ -55,7 +55,7 @@ void loop() {
   crc++;
 
   if ( !(response[0] == 0xFF && response[1] == 0x86) ) {
-    coPpm=0;
+    coPpm=lastPpm;
   } else {
     responseHigh = (unsigned int) response[2];
     responseLow = (unsigned int) response[3];
