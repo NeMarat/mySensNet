@@ -15,7 +15,7 @@
 #define CHILD_ID_HUM  104
 #define CHILD_ID_TEMP 105
 
-unsigned long SLEEP_TIME = 60000; //300000;
+unsigned long SLEEP_TIME = 80000; //300000;
 unsigned long nowTime;
 unsigned long lastSend;
 float lastTemp;

@@ -1,6 +1,8 @@
 #ifndef _WEATHER_OREGON_H_
 #define _WEATHER_OREGON_H_
 
+#include <Arduino.h>
+
 volatile word pulse;
 /*
 https://github.com/phardy/WeatherStation
