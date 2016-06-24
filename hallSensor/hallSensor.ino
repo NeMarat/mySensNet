@@ -9,7 +9,7 @@
 #define CHILD_ID_IR 3
 #define HUMIDITY_SENSOR_PIN 7
 #define PIR_SENSOR_PIN 6
-#define KHZ 38;
+#define kHz 38;
 
 unsigned long SLEEP_TIME = 180000;
 unsigned long nowTime;
@@ -31,9 +31,17 @@ MyMessage msgTemp(CHILD_ID_TEMP, V_TEMP);
 MyMessage msgPir(CHILD_ID_PIR, V_TRIPPED);
 MyMessage msgIr(CHILD_ID_IR, V_VAR1);
 
-void irRecive(const MyMessage &message) {+
+void irRecive(const MyMessage &message) {
 IRsend My_Sender;
-My_Sender.send(NEC,0xa8bca, 32);
+int m = message.getInt();
+if (message.sensor == CHILD_ID_IR) {
+  if (m == 1) {
+    My_Sender.send(NEC,0x9090, 32);
+  }
+  if (m == 0) {
+    My_Sender.send(NEC,0x8090030A, 32);
+  }
+}
 
 }
 
@@ -47,6 +55,7 @@ void setup() {
   gw.present(CHILD_ID_HUM, S_HUM);
   gw.present(CHILD_ID_TEMP, S_TEMP);
   gw.present(CHILD_ID_PIR, S_MOTION);
+  gw.present(CHILD_ID_IR, S_CUSTOM);
   lastSend=millis();
   irReady=false;
 }

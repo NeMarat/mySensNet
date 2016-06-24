@@ -209,13 +209,6 @@ class OregonDecoderV2 : public DecodeOOK
 
 ////////////////////////////////////
 
-void oregonrd(void)
-{
-   static word last;
-   pulse = micros() - last;
-   last += pulse;
-}
-
 float temperature(const byte* data)
 {
    int8_t sign = (data[6]&0x8) ? -1 : 1;

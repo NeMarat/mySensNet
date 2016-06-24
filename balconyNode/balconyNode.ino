@@ -28,11 +28,11 @@ DHT dht;
 OneWire oneWire(ONE_WIRE_BUS); // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 DallasTemperature sensors(&oneWire); // Pass the oneWire reference to Dallas Temperature. 
 
-word p;
 OregonDecoderV2 orscV2;
 
 MySensor gw;
 boolean metric = true;
+boolean getOregon = false;
 uint8_t numSensors=0;
 float lastTemperature[MAX_ATTACHED_DS18B20];
 MyMessage msgDLTmp(0, V_TEMP);
@@ -41,6 +41,18 @@ MyMessage oregonH(CHILD_ID_ORH, V_HUM);
 MyMessage oregonB(CHILD_ID_ORB, V_VAR2);
 MyMessage msgHum(CHILD_ID_HUM, V_HUM);
 MyMessage msgTemp(CHILD_ID_TEMP, V_TEMP);
+
+void oregonrd(void)
+{
+   static word last;
+   pulse = micros() - last;
+   last += pulse;
+   if (!getOregon) {
+     if (orscV2.nextPulse(pulse)) {
+       getOregon=true;
+     }
+   }
+}
 
 void setup() { 
   pinMode(3, INPUT);
@@ -117,11 +129,7 @@ void loop() {
     }
   }
   
-  p = pulse;
-  pulse = 0;
-  if (p != 0) {
-      Serial.println(p);
-      if (orscV2.nextPulse(p)) {
+      if (getOregon) {
          byte pos;
          const byte * dt = orscV2.getData(pos);
          if(dt[0] == 0xEA && dt[1] == 0x4C) {
@@ -130,6 +138,6 @@ void loop() {
            gw.send(oregonB.set(battery(dt)));
          }
          orscV2.resetDecoder();
+	 getOregon=false;
       }
-  }
 }
