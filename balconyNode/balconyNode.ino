@@ -45,12 +45,9 @@ MyMessage msgTemp(CHILD_ID_TEMP, V_TEMP);
 void oregonrd(void)
 {
    static word last;
-   pulse = micros() - last;
-   last += pulse;
    if (!getOregon) {
-     if (orscV2.nextPulse(pulse)) {
-       getOregon=true;
-     }
+     pulse = micros() - last;
+     last += pulse;
    }
 }
 
@@ -128,8 +125,9 @@ void loop() {
       }
     }
   }
-  
-      if (getOregon) {
+  if (orscV2.nextPulse(pulse)) {
+      getOregon=true;
+      //if (getOregon) {
          byte pos;
          const byte * dt = orscV2.getData(pos);
          if(dt[0] == 0xEA && dt[1] == 0x4C) {
@@ -138,6 +136,6 @@ void loop() {
            gw.send(oregonB.set(battery(dt)));
          }
          orscV2.resetDecoder();
-	 getOregon=false;
-      }
+	   getOregon=false;
+  }
 }

@@ -39,12 +39,12 @@ void incomingMessage(const MyMessage &message) {
   if (message.type==V_VOLUME/*V_VAR1*/) {
     unsigned long gwPulseCount=message.getULong();
     if (message.sensor == CHILD_ID_COLD_W) {
-      if (gwPulseCount > coldPinCount) {
+      if (gwPulseCount != coldPinCount) {
         coldPinCount = gwPulseCount;
       }
     }
     if (message.sensor == CHILD_ID_HOT_W) {
-      if (gwPulseCount > hotPinCount) {
+      if (gwPulseCount != hotPinCount) {
         hotPinCount = gwPulseCount;
       }
     }
@@ -57,21 +57,25 @@ void checkOut () {
   digitalWrite(COLDPIN, HIGH); 
   delay(3);
   t=digitalRead(COLDPIN);
-  if (cPinState != t) {
-    cPinState = t;
+  if (t == HIGH && cPinState == LOW) {
     coldPinCount++;
     mem.writeByte(cPinState, COLDPinStateMem);
     mem.writeULong(coldPinCount, COLDCountMem);
+  }
+  if (cPinState != t) {
+    cPinState = t;
   }
   digitalWrite(COLDPIN, LOW);
   digitalWrite(HOTPIN,  HIGH);
   delay(3);
   t=digitalRead(HOTPIN);
-  if (hPinState != t) {
-    hPinState = t;
+  if (t == HIGH && hPinState == LOW) {
     hotPinCount++;
     mem.writeByte(hPinState, HOTPinStateMem);
-    mem.writeULong(hotPinCount, HOTCountMem);  
+    mem.writeULong(hotPinCount, HOTCountMem);
+  }
+  if (hPinState != t) {
+    hPinState = t;  
   }
   digitalWrite(HOTPIN,  LOW);
   analogWrite(LED, 0);
@@ -126,7 +130,7 @@ void senData () {
   
   gw.begin(incomingMessage);
   //delay(50);
-  gw.sendSketchInfo("Water Meter", "2.0");
+  gw.sendSketchInfo("Water Meter", "2.1");
   //delay(20);
   gw.present(CHILD_ID_COLD_W, S_WATER);
   //delay(20);
@@ -192,7 +196,7 @@ void setup()
   
 
   gw.begin(incomingMessage);
-  gw.sendSketchInfo("Water Meter", "2.0");
+  gw.sendSketchInfo("Water Meter", "2.1");
   gw.present(CHILD_ID_COLD_W, S_WATER);
   gw.present(CHILD_ID_HOT_W, S_WATER);
   //gw.request(CHILD_ID_COLD_W, V_VAR1);

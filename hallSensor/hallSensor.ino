@@ -9,7 +9,7 @@
 #define CHILD_ID_IR 3
 #define HUMIDITY_SENSOR_PIN 7
 #define PIR_SENSOR_PIN 6
-#define kHz 38;
+#define kHz 38
 
 unsigned long SLEEP_TIME = 180000;
 unsigned long nowTime;
@@ -23,6 +23,9 @@ boolean tripped;
 boolean irReady;
 uint16_t irMsg1, irMsg2;
 
+unsigned int acOn[72] = {4150, 900,1350, 900,300, 800,400, 750,1500, 800,400, 750,400, 700,500, 650,550, 650,1600, 650,550, 600,600, 600,1650, 600,600, 550,600, 600,600, 600,600, 550,600, 600,600, 600,600, 550,600, 600,600, 600,600, 550,1700, 550,1700, 600,600, 550,650, 550,600, 600,600, 550,1700, 600,600, 550,1700, 600,600, 550,600, 600,1650, 600,600, 600};
+unsigned int acOff[72] = {4100, 900,1350, 900,300, 800,350, 800,400, 800,400, 750,450, 650,550, 650,500, 650,1650, 600,550, 650,550, 600,1650, 600,600, 600,600, 550,600, 600,600, 600,600, 550,600, 600,600, 600,600, 550,600, 600,600, 600,1650, 600,1700, 550,600, 600,600, 550,650, 550,600, 600,1650, 600,600, 600,1650, 600,600, 550,650, 550,1700, 550,650, 550};
+
 DHT dht;
 MySensor gw;
 boolean metric = true;
@@ -32,14 +35,14 @@ MyMessage msgPir(CHILD_ID_PIR, V_TRIPPED);
 MyMessage msgIr(CHILD_ID_IR, V_VAR1);
 
 void irRecive(const MyMessage &message) {
-IRsend My_Sender;
+IRsendRaw My_Sender;
 int m = message.getInt();
 if (message.sensor == CHILD_ID_IR) {
   if (m == 1) {
-    My_Sender.send(NEC,0x9090, 32);
+    My_Sender.send(acOn, 72, kHz);
   }
   if (m == 0) {
-    My_Sender.send(NEC,0x8090030A, 32);
+    My_Sender.send(acOff, 72, kHz);
   }
 }
 

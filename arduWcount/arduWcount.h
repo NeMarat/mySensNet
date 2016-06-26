@@ -19,8 +19,8 @@
 #define PERCENTPERVOLT 62.5 // 100 / (max volt - min)
 #define LASTCALLVOLT 2.9 
 
-#define TIME_SLEEP 4000 //4 seconds
-#define SLEEPS_SENS 300 //20 min if wake ups ewery 4 seconds
+#define TIME_SLEEP 2000 //2 seconds
+#define SLEEPS_SENS 600 //20 min if wake ups ewery 2 seconds
 
 //EEPROM addresses for data save
 // addr 0 is for future possible use
