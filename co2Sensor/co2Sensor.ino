@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <SPI.h>
 #include <Wire.h> 
 #include <MySensor.h>  
@@ -21,8 +22,10 @@ uint32_t coPpm;
 uint32_t lastPpm;
 uint32_t responseHigh;
 uint32_t responseLow;
-bool sendTime, reWrite;
+bool sendTime;
+uint16_t lcdRewrite = 0;
 uint8_t i; 
+
 byte crc = 0;
 String v1, v2, v3, r1, r2;
 byte s1, s2;
@@ -30,6 +33,7 @@ byte s1, s2;
 MySensor gw;
 boolean metric = true;
 MyMessage msgCo(CHILD_ID_CO, V_LEVEL);
+MyMessage msgVx(CHILD_ID_CO, V_VAR1);
 
 float baTest() {
   uint16_t b = analogRead(BATT_PIN);
@@ -48,32 +52,40 @@ void incomingMessage (const MyMessage &message) {
   if (message.type==V_VAR3) {  
     v3=message.getString(buf);
   }
-  s1 = 16-length(v1)-length(v2)-1;
-  s2 = 16-length(v3)-8-1; //CO2=XXXX
+  s1 = 16-v1.length()-v2.length()-1;
+  s2 = 16-v3.length()-8-1; //CO2=XXXX
   if (s1 < 0){
     s1=1;
-    v1=v1.substring(0, min(7, length(v1));
-    v2=v2.substring(0, min(8, length(v2));
+    v1=v1.substring(0, min(7, v1.length()));
+    v2=v2.substring(0, min(8, v2.length()));
   }
   if (s2 < 0){
     s2=1;
-    v3=v3.substring(0, min(7, length(v3));
+    v3=v3.substring(0, min(7, v3.length()));
   }
 }
 
 void setup() { 
-  gw.begin(incomingMessage);
-  Serial.begin(9600);
   lcd.begin();
   lcd.backlight();
   lcd.noBlink();
-  lcd.noCursor(); 
+  lcd.noCursor();
+  lcd.print("CO2 meter load..");
+  gw.begin(incomingMessage);
+  delay(5000); //for co2 sensor startup
+  Serial.begin(9600); 
   pinMode(BATT_PIN, INPUT);
-  gw.sendSketchInfo("CO2 sensor", "1.2");
+  gw.sendSketchInfo("CO2 sensor", "1.3");
   gw.present(CHILD_ID_CO, S_AIR_QUALITY);
   gw.present(CHILD_ID_V1, S_CUSTOM);
   gw.present(CHILD_ID_V2, S_CUSTOM);
   gw.present(CHILD_ID_V3, S_CUSTOM);
+  msgVx.setSensor(CHILD_ID_V1);
+  gw.send(msgVx.set(0));
+  msgVx.setSensor(CHILD_ID_V2);
+  gw.send(msgVx.set(0));
+  msgVx.setSensor(CHILD_ID_V3);
+  gw.send(msgVx.set(0));
   lastSend=millis();
   lastPpm=0;
 }
@@ -84,6 +96,7 @@ void loop() {
   sendTime = nowTime - lastSend > SLEEP_TIME;
 
   if (sendTime) {
+    lcdRewrite++;
     sendTime = false;
     lastSend=nowTime;
     memset(response, 0, 9);
@@ -107,10 +120,18 @@ void loop() {
     }
   }
   }
-  if (reWrite) {
+  if (lcdRewrite > REWRITE_TIME) {
+    lcdRewrite = 0;
     r1=v1; r2=v3;
-    for (byte i=0; i < s1; i++) { r1 = r1+' '; }
-    for (byte i=0; i < s2; i++) { r2 = r2+' '; }
+    for (i=0; i < s1; i++) { r1 = r1+' '; }
+    for (i=0; i < s2; i++) { r2 = r2+' '; }
+    r1=r1+v2; r2=r2+"CO2="+String(coPpm);
+    lcd.clear();
+    lcd.home();
+    lcd.setCursor(0, 0);
+    lcd.print(r1);
+    lcd.setCursor(0, 1);
+    lcd.print(r2);
   } 
 }
 
