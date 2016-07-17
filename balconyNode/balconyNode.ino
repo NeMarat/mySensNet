@@ -32,8 +32,8 @@ OregonDecoderV2 orscV2;
 
 MySensor gw;
 boolean metric = true;
-boolean getOregon = false;
 uint8_t numSensors=0;
+word p;
 float lastTemperature[MAX_ATTACHED_DS18B20];
 MyMessage msgDLTmp(0, V_TEMP);
 MyMessage oregonT(CHILD_ID_ORT, V_TEMP);
@@ -45,10 +45,8 @@ MyMessage msgTemp(CHILD_ID_TEMP, V_TEMP);
 void oregonrd(void)
 {
    static word last;
-   if (!getOregon) {
      pulse = micros() - last;
      last += pulse;
-   }
 }
 
 void setup() { 
@@ -80,7 +78,12 @@ void setup() {
 }
 
 void loop() {
-  gw.process();
+  cli();
+  p = pulse;
+  pulse = 0;
+  sei();
+  
+  //gw.process();
   
   nowTime = millis();
   sendTime = nowTime - lastSend > SLEEP_TIME;
@@ -125,9 +128,8 @@ void loop() {
       }
     }
   }
-  if (orscV2.nextPulse(pulse)) {
-      getOregon=true;
-      //if (getOregon) {
+  if (p !=0 ) {
+    if (orscV2.nextPulse(p)) {
          byte pos;
          const byte * dt = orscV2.getData(pos);
          if(dt[0] == 0xEA && dt[1] == 0x4C) {
@@ -136,6 +138,6 @@ void loop() {
            gw.send(oregonB.set(battery(dt)));
          }
          orscV2.resetDecoder();
-	   getOregon=false;
+    }
   }
 }
