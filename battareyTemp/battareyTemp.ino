@@ -1,17 +1,16 @@
-#define MARS_OWN_PCB
-
 #include <SPI.h>
 #include <MySensor.h>  
 #include <DHT.h>  
 
 #define CHILD_ID_HUM 0
 #define CHILD_ID_TEMP 1
-#define HUMIDITY_SENSOR_DIGITAL_PIN 3
+#define HUMIDITY_SENSOR_DIGITAL_PIN 5
+#define HUMIDITY_SENSOR_POW_PIN 6
 
 // эту константу (typVbg) необходимо откалибровать индивидуально
 const float typVbg = 1.1;
 
-unsigned long SLEEP_TIME = 300000;
+unsigned long SLEEP_TIME = 180000;
 float lastTemperature;
 float lastHumidity;
 float temperature;
@@ -61,32 +60,26 @@ float readVcc() {
 
 void setup() { 
   analogReference(DEFAULT);
-  pinMode(2, OUTPUT);
-  pinMode(A3, OUTPUT);
-  pinMode(3, INPUT);
-  digitalWrite(2, HIGH);
-  digitalWrite(A3, HIGH);
+  pinMode(HUMIDITY_SENSOR_POW_PIN, OUTPUT);
+  pinMode(HUMIDITY_SENSOR_DIGITAL_PIN, INPUT);
+  digitalWrite(HUMIDITY_SENSOR_POW_PIN, HIGH);
   delay(20);
   gw.begin();
   dht.setup(HUMIDITY_SENSOR_DIGITAL_PIN);
 
   // Send the Sketch Version Information to the Gateway
-  gw.sendSketchInfo("Humidity and temp", "2.0");
+  gw.sendSketchInfo("Humidity and temp", "2.1");
 
   // Register all sensors to gw (they will be created as child devices)
   gw.present(CHILD_ID_HUM, S_HUM);
   gw.present(CHILD_ID_TEMP, S_TEMP);
   
   delay(20);
-  digitalWrite(2, LOW);
-  digitalWrite(A3, LOW);
 }
 
 void loop() {
-  digitalWrite(A3, HIGH);
-  digitalWrite(2, HIGH);
-  delay(20);
   gw.begin();
+  digitalWrite(HUMIDITY_SENSOR_POW_PIN, HIGH);
   delay(dht.getMinimumSamplingPeriod());
   gw.process();
   temperature = dht.getTemperature();
@@ -106,7 +99,7 @@ void loop() {
     }
   }
 
-  digitalWrite(2, LOW);
-  digitalWrite(A3, LOW);
+  digitalWrite(HUMIDITY_SENSOR_POW_PIN, LOW);
   gw.sleep(SLEEP_TIME);
 }
+
