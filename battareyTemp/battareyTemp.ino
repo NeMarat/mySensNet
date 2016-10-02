@@ -59,16 +59,18 @@ float readVcc() {
 }
 
 void setup() { 
+  lastHumidity=0.0;
+  lastTemperature=0.0;
   analogReference(DEFAULT);
   pinMode(HUMIDITY_SENSOR_POW_PIN, OUTPUT);
-  pinMode(HUMIDITY_SENSOR_DIGITAL_PIN, INPUT);
+  //pinMode(HUMIDITY_SENSOR_DIGITAL_PIN, INPUT);
   digitalWrite(HUMIDITY_SENSOR_POW_PIN, HIGH);
-  delay(20);
+  //delay(200);
   gw.begin();
-  dht.setup(HUMIDITY_SENSOR_DIGITAL_PIN);
+  dht.setup(HUMIDITY_SENSOR_DIGITAL_PIN, DHT::AM2302);
 
   // Send the Sketch Version Information to the Gateway
-  gw.sendSketchInfo("Humidity and temp", "2.1");
+  gw.sendSketchInfo("Humidity and temp", "2.2");
 
   // Register all sensors to gw (they will be created as child devices)
   gw.present(CHILD_ID_HUM, S_HUM);
@@ -78,28 +80,29 @@ void setup() {
 }
 
 void loop() {
-  gw.begin();
+  //gw.begin();
   digitalWrite(HUMIDITY_SENSOR_POW_PIN, HIGH);
-  delay(dht.getMinimumSamplingPeriod());
+  delay(2000);
   gw.process();
+  //gw.sendBatteryLevel(readVcc()*10);
+  //delay(2*dht.getMinimumSamplingPeriod());
   temperature = dht.getTemperature();
-  humidity = dht.getHumidity();
+  delay(dht.getMinimumSamplingPeriod());
+  humidity = dht.getHumidity();  
+  digitalWrite(HUMIDITY_SENSOR_POW_PIN, LOW);
   
   if (!isnan(temperature) && !isnan(humidity)) {
+    gw.sendBatteryLevel(readVcc()*10);
     if (humidity != lastHumidity) {
       lastHumidity = humidity;
       gw.send(msgHum.set(humidity, 1));
-      gw.sendBatteryLevel(readVcc()*10);
     }
-  
     if (temperature != lastTemperature) {
       lastTemperature = temperature;
       gw.send(msgTemp.set(temperature, 1));
-      gw.sendBatteryLevel(readVcc()*10);
     }
   }
 
-  digitalWrite(HUMIDITY_SENSOR_POW_PIN, LOW);
   gw.sleep(SLEEP_TIME);
 }
 
