@@ -35,12 +35,13 @@ void fadeToLevel( int toLevel ) {
 
 void ledFlash () {
   uint8_t leOld = led;
-  fadeToLevel(0);
+  analogWrite(LED_PIN, 0);
   while (fls > 0) {
     fls--;
     analogWrite(LED_PIN, 255);
     delay(dly);
     analogWrite(LED_PIN, 0);
+    delay(dly);
   }
   fadeToLevel(leOld);
 }
