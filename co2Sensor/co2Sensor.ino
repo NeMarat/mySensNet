@@ -43,9 +43,11 @@ float baTest() {
 
 void incomingMessage (const MyMessage &message) {
   char *buf;
+  /*
   if (message.type==V_VAR1 || message.type==V_VAR2 || message.type==V_VAR3) {
     BF_SET(message.command_acq_payload, P_STRING, 5, 3);
   }
+  */
   if (message.type==V_VAR1) {  
     v1=message.getString(buf);
   }

@@ -43,9 +43,7 @@ void setup() {
   gw.present(CHILD_ID_HUM, S_HUM);
   gw.present(CHILD_ID_TEMP, S_TEMP);
   gw.present(CHILD_ID_PIR, S_MOTION);
-  gw.present(CHILD_ID_IR, S_CUSTOM);
   lastSend=millis();
-  irReady=false;
 }
 
 void loop() {
