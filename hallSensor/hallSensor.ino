@@ -1,15 +1,19 @@
 #include <SPI.h>
 #include <MySensor.h>  
 #include <DHT.h>  
-#include <IRLib.h>
+#include <Wire.h>
+#include <Adafruit_BMP085.h>
 
-#define CHILD_ID_HUM 0
-#define CHILD_ID_TEMP 1
-#define CHILD_ID_PIR 2
-#define CHILD_ID_IR 3
-#define HUMIDITY_SENSOR_PIN 7
-#define PIR_SENSOR_PIN 6
-#define kHz 38
+#define CHILD_ID_HUM 0  //влажность
+#define CHILD_ID_TEMP 1 //температура
+#define CHILD_ID_PIR 2  //датчик движения
+#define CHILD_ID_SND 3  //количество звонков
+#define CHILD_ID_DLY 4  //перерыв между ними
+#define CHILD_ID_TON 5  //тональность звонка
+#define CHILD_ID_BMP 6  //давление
+#define HUMIDITY_SENSOR_PIN 7 //dht22
+#define PIR_SENSOR_PIN 6      //датчик движения
+#define SND_PIEZO_PIN 5       //пищалка
 
 unsigned long SLEEP_TIME = 180000;
 unsigned long nowTime;
@@ -20,11 +24,6 @@ float lastHumidity;
 float temperature;
 float humidity;
 boolean tripped;
-boolean irReady;
-uint16_t irMsg1, irMsg2;
-
-unsigned int acOn[72] = {4150, 900,1350, 900,300, 800,400, 750,1500, 800,400, 750,400, 700,500, 650,550, 650,1600, 650,550, 600,600, 600,1650, 600,600, 550,600, 600,600, 600,600, 550,600, 600,600, 600,600, 550,600, 600,600, 600,600, 550,1700, 550,1700, 600,600, 550,650, 550,600, 600,600, 550,1700, 600,600, 550,1700, 600,600, 550,600, 600,1650, 600,600, 600};
-unsigned int acOff[72] = {4100, 900,1350, 900,300, 800,350, 800,400, 800,400, 750,450, 650,550, 650,500, 650,1650, 600,550, 650,550, 600,1650, 600,600, 600,600, 550,600, 600,600, 600,600, 550,600, 600,600, 600,600, 550,600, 600,600, 600,1650, 600,1700, 550,600, 600,600, 550,650, 550,600, 600,1650, 600,600, 600,1650, 600,600, 550,650, 550,1700, 550,650, 550};
 
 DHT dht;
 MySensor gw;
@@ -32,25 +31,11 @@ boolean metric = true;
 MyMessage msgHum(CHILD_ID_HUM, V_HUM);
 MyMessage msgTemp(CHILD_ID_TEMP, V_TEMP);
 MyMessage msgPir(CHILD_ID_PIR, V_TRIPPED);
-MyMessage msgIr(CHILD_ID_IR, V_VAR1);
-
-void irRecive(const MyMessage &message) {
-IRsendRaw My_Sender;
-int m = message.getInt();
-if (message.sensor == CHILD_ID_IR) {
-  if (m == 1) {
-    My_Sender.send(acOn, 72, kHz);
-  }
-  if (m == 0) {
-    My_Sender.send(acOff, 72, kHz);
-  }
-}
-
-}
+MyMessage msgPres(CHILD_ID_BMP, V_PRESSURE);
 
 void setup() { 
   pinMode(PIR_SENSOR_PIN, INPUT);
-  gw.begin(irRecive);
+  gw.begin();
   dht.setup(HUMIDITY_SENSOR_PIN);
 
   gw.sendSketchInfo("Hall sensor", "2.0");
@@ -58,9 +43,7 @@ void setup() {
   gw.present(CHILD_ID_HUM, S_HUM);
   gw.present(CHILD_ID_TEMP, S_TEMP);
   gw.present(CHILD_ID_PIR, S_MOTION);
-  gw.present(CHILD_ID_IR, S_CUSTOM);
   lastSend=millis();
-  irReady=false;
 }
 
 void loop() {
