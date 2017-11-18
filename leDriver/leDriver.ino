@@ -9,8 +9,10 @@
 #define LED_PIN 5
 #define FADE_DELAY 10
 
+#define MY_NODE_ID 24
+
 uint8_t led;
-uint8_t fls;
+uint8_t fls=10;
 uint16_t dly=50;
 
 MySensor gw;
@@ -29,7 +31,7 @@ void fadeToLevel( int toLevel ) {
   while ( led != toLevel ) {
     led += delta;
     analogWrite( LED_PIN, (int)(led / 100. * 255) );
-    delay( FADE_DELAY );
+    gw.wait( FADE_DELAY );
   }
 }
 
@@ -40,28 +42,28 @@ void ledFlash () {
   while (fls > 0) {
     fls--;
     analogWrite(LED_PIN, 255);
-    delay(dly);
+    gw.wait(dly);
     analogWrite(LED_PIN, 0);
-    delay(dly);
+    gw.wait(dly);
   }
   fadeToLevel(leOld);
 }
 
 void incomingMessage(const MyMessage &message) {
-  if (message.sensor == CHILD_ID_LED && (message.type == V_LIGHT || message.type == V_DIMMER)) {
+  if (message.sensor == CHILD_ID_LED && (message.type == V_LIGHT || message.type == V_DIMMER || message.type == V_PERCENTAGE)) {
     
     //  Retrieve the power or dim level from the incoming request message
     int requestedLevel = atoi( message.data );
     
     // Adjust incoming level if this is a V_LIGHT variable update [0 == off, 1 == on]
-    requestedLevel *= ( message.type == V_LIGHT ? 100 : 1 );
+    if (message.type == V_LIGHT && requestedLevel == 1) { requestedLevel = 100; } 
+    if (message.type == V_LIGHT && requestedLevel == 0) { requestedLevel = 0; }
     
     // Clip incoming level to valid range of 0 to 100
-    requestedLevel = requestedLevel > 100 ? 100 : requestedLevel;
-    requestedLevel = requestedLevel < 0   ? 0   : requestedLevel;
+    if (requestedLevel > 100 ) { requestedLevel=100; }
+    if (requestedLevel < 0 ) { requestedLevel=0; }
     
     fadeToLevel( requestedLevel );
-    
     // Inform the gateway of the current DimmableLED's SwitchPower1 and LoadLevelStatus value...
     gw.send(lightMsg.set(led));
   }
@@ -75,19 +77,20 @@ void incomingMessage(const MyMessage &message) {
 
 void setup() { 
   pinMode(LED_PIN, OUTPUT);
-  mySwitch.enableReceive(0);  // Receiver on inerrupt 0 => that is pin #2
   gw.begin(incomingMessage);  
-  gw.sendSketchInfo("Led driver", "2.1");
+  gw.sendSketchInfo("Led driver", "2.2");
   gw.present(CHILD_ID_LED, S_DIMMER);
   gw.present(CHILD_ID_433, S_CUSTOM);
   gw.present(CHILD_ID_FLS, S_LIGHT);
   gw.present(CHILD_ID_DLY, S_CUSTOM);
   gw.request(CHILD_ID_LED, V_DIMMER);
   gw.request(CHILD_ID_DLY, V_VAR2);
+  mySwitch.enableReceive(0);  // Receiver on inerrupt 0 => that is pin #2
 }
 
 void loop() {
   gw.process();
+  
   if (mySwitch.available()) {
     gw.send(msg433.set(mySwitch.getReceivedValue()));
     mySwitch.resetAvailable();
@@ -95,4 +98,5 @@ void loop() {
   if (fls > 0) {
     ledFlash();
   }
+    
 }
