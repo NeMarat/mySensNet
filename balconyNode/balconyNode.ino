@@ -34,6 +34,7 @@ MySensor gw;
 boolean metric = true;
 uint8_t numSensors=0;
 word p;
+int16_t conversionTime;
 float lastTemperature[MAX_ATTACHED_DS18B20];
 MyMessage msgDLTmp(0, V_TEMP);
 MyMessage oregonT(CHILD_ID_ORT, V_TEMP);
@@ -53,11 +54,8 @@ void setup() {
   pinMode(3, INPUT);
   attachInterrupt(1, oregonrd, CHANGE);
   
-  pinMode(ONE_WIRE_BUS, OUTPUT);
-  digitalWrite(ONE_WIRE_BUS, HIGH);
-  delay(100);
   sensors.begin();
-  sensors.setWaitForConversion(false);
+  //sensors.setWaitForConversion(true);
   numSensors = sensors.getDeviceCount();
 
   dht.setup(HUMIDITY_SENSOR_DIGITAL_PIN);
@@ -74,7 +72,6 @@ void setup() {
   for (int i=0; i<numSensors && i<MAX_ATTACHED_DS18B20; i++) {   
      gw.present(i, S_TEMP);
   }
-  Serial.println(numSensors, DEC);
 }
 
 void loop() {
@@ -108,22 +105,18 @@ void loop() {
       }
     }
     //dallas part
+    sensors.begin();
+    numSensors = sensors.getDeviceCount();
     sensors.requestTemperatures();
-    // query conversion time and sleep until conversion completed
-    int16_t conversionTime = sensors.millisToWaitForConversion(sensors.getResolution());
-    // sleep() call can be replaced by wait() call if node need to process incoming messages (or if node is repeater)
-    gw.sleep(conversionTime);
+    conversionTime = sensors.millisToWaitForConversion(sensors.getResolution());
+    delay(conversionTime);
   
     for (int i=0; i<numSensors && i<MAX_ATTACHED_DS18B20; i++) {
- 
-      // Fetch and round temperature to one decimal
+      gw.present(i, S_TEMP);
       temp = sensors.getTempCByIndex(i);
- 
-      // Only send data if temperature has changed and no error
-      if (lastTemperature[i] != temp && temp != -127.00 && temp != 85.00) {
-        // Send in the new temperature
-        gw.send(msgDLTmp.setSensor(i).set(temp, 1));
-        // Save new temperatures for next compare
+      if (lastTemperature[i] != temp && temp > -50.0 && temp <= 85.0) {
+        msgDLTmp.setSensor(i);
+        gw.send(msgDLTmp.set(temp, 1));
         lastTemperature[i]=temp;
       }
     }
