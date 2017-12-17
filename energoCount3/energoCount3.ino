@@ -27,6 +27,7 @@ float ct; //current whatt
 float tt; //temporary whatt counter
 float ta; //temporary whatt counter
 float ts; //used for crc
+float tv; //temporary multimetr
 DateTime nowTime;
 long reSend=SEND_TIME; //sent curent params every 600 ceconds (adjust by TSND_SENS_ID, V_VAR4)
 long creSend=0;  //curent second timer
@@ -118,6 +119,9 @@ void setup() {
     request(T_3_SENS_ID, V_KWH);
     ts = readFloat(TARIF_1_ADDR, &RTC)+readFloat(TARIF_2_ADDR, &RTC)+readFloat(TARIF_3_ADDR, &RTC);
     RTC.writenvram(TARIF_CRC, tarif_crc(&ts));
+    send(kwhMsgT1.set(getSensorVal(T_1_SENS_ID), 2));
+    send(kwhMsgT2.set(getSensorVal(T_2_SENS_ID), 2));
+    send(kwhMsgT3.set(getSensorVal(T_3_SENS_ID), 2));
   }
 }
 
@@ -156,10 +160,13 @@ void loop() {
     send(kwhMsgT2.set(getSensorVal(T_2_SENS_ID), 2));
     send(kwhMsgT3.set(getSensorVal(T_3_SENS_ID), 2));
     send(nodeTime.set(getSensorVal(TIM_SENS_ID), 0));
-    send(kwSendTime.set(creSend));
-    send(voltMsg.set(pzem.voltage(ip), 2));
-    send(ampMsg.set(pzem.current(ip), 2));
-    send(wattMsg.set(pzem.power(ip), 2));
+    send(kwSendTime.set(reSend));
+    tv=pzem.voltage(ip);
+    if (tv > 0.0) { send(voltMsg.set(tv, 2)); }
+    tv=pzem.current(ip);
+    if (tv > 0.0) { send(ampMsg.set(tv, 2)); }
+    tv=pzem.power(ip);
+    if (tv > 0.0) { send(wattMsg.set(tv, 2)); }
     creSend=0;
   }
 
