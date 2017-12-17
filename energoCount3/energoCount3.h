@@ -3,6 +3,7 @@
 
 //asc RTC about time every X seconds
 #define ASK_TIME_INERV  59
+#define SEND_TIME       90
 
 //flash adresses for store counted values in rtc flash
 #define TARIF_1_ADDR 1

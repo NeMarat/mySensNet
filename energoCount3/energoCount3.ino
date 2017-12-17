@@ -1,14 +1,16 @@
+#define MY_RADIO_NRF24
+
 #include <PZEM004T.h>
 #include <SoftwareSerial.h>
 #include <SPI.h>
 #include <Wire.h>
 #include <RTClib.h>
-#include <MySensor.h>
+#include <MySensors.h>
 #include "rtcSave.h"
 #include "energoCount3.h"
 
 RTC_DS1307 RTC;  
-MySensor gw;
+MySensors gw;
 MyMessage wattMsg(WAT_SENS_ID, V_WATT);
 MyMessage kwhMsgT1(T_1_SENS_ID, V_KWH);
 MyMessage kwhMsgT2(T_2_SENS_ID, V_KWH);
@@ -18,7 +20,7 @@ MyMessage kwSendTime(TSND_SENS_ID, V_VAR4);
 MyMessage voltMsg(VOLT_SENS_ID, V_VOLTAGE);
 MyMessage ampMsg(AMP_SENS_ID, V_CURRENT);
 
-SoftwareSerial mySerial(10, 11); // RX, TX
+SoftwareSerial mySerial(8, 11); // RX, TX
 PZEM004T pzem(&mySerial);
 IPAddress ip(172,16,250,5);
 
@@ -29,7 +31,7 @@ float tt; //temporary whatt counter
 float ta; //temporary whatt counter
 float ts; //used for crc
 DateTime nowTime;
-long reSend=600; //sent curent params every 600 ceconds (adjust by TSND_SENS_ID, V_VAR4)
+long reSend=SEND_TIME; //sent curent params every 600 ceconds (adjust by TSND_SENS_ID, V_VAR4)
 long creSend=0;  //curent second timer
 byte cSec=0;     //current second for saving power data to correct tariff
 byte cTarifInterval=0;    //current tarif
@@ -88,7 +90,13 @@ float getSensorVal (byte sensId) {
   }
 }
 
+void newSecond() {
+  cSec++;
+  creSend++;
+}
+
 void setup() {
+  attachInterrupt(digitalPinToInterrupt(3), newSecond, CHANGE);
   pzem.setAddress(ip);  
   Wire.begin();
   RTC.begin();
@@ -103,7 +111,7 @@ void setup() {
   gw.present(WAT_SENS_ID, S_POWER);
   gw.present(VOLT_SENS_ID, S_MULTIMETER);
   gw.present(AMP_SENS_ID, S_MULTIMETER); 
-  gw.request(TSND_SENS_ID, V_VAR4);
+  //gw.request(TSND_SENS_ID, V_VAR4);
 
   ts = readFloat(TARIF_1_ADDR, &RTC)+readFloat(TARIF_2_ADDR, &RTC)+readFloat(TARIF_3_ADDR, &RTC);
   byte cr = RTC.readnvram(TARIF_CRC);
@@ -115,6 +123,10 @@ void setup() {
     gw.request(T_3_SENS_ID, V_KWH);
     saveData(t1, t2, t3);
   }
+}
+
+void presentation() {
+  
 }
 
 void loop() {
@@ -134,9 +146,17 @@ void loop() {
       writeFloat(ct, TARIF_LAST_AD, &RTC);
       cTarifInterval=vTarifInterval;
     }
+    cSec=0;
   }
   if (creSend > reSend) {
-    
+    gw.send(kwhMsgT1.set(getSensorVal(T_1_SENS_ID), 2));
+    gw.send(kwhMsgT2.set(getSensorVal(T_2_SENS_ID), 2));
+    gw.send(kwhMsgT3.set(getSensorVal(T_3_SENS_ID), 2));
+    gw.send(nodeTime.set(getSensorVal(TIM_SENS_ID)));
+    gw.send(kwSendTime.set(creSend));
+    gw.send(voltMsg.set(pzem.voltage(ip), 2));
+    gw.send(ampMsg.set(pzem.current(ip), 2));
+    gw.send(wattMsg.set(pzem.power(ip), 2));
     creSend=0;
   }
 
