@@ -1,7 +1,6 @@
 #define MY_RADIO_NRF24
 
 #include <PZEM004T.h>
-#include <SoftwareSerial.h>
 #include <SPI.h>
 #include <Wire.h>
 #include <RTClib.h>
@@ -10,7 +9,6 @@
 #include "energoCount3.h"
 
 RTC_DS1307 RTC;  
-MySensors gw;
 MyMessage wattMsg(WAT_SENS_ID, V_WATT);
 MyMessage kwhMsgT1(T_1_SENS_ID, V_KWH);
 MyMessage kwhMsgT2(T_2_SENS_ID, V_KWH);
@@ -20,8 +18,7 @@ MyMessage kwSendTime(TSND_SENS_ID, V_VAR4);
 MyMessage voltMsg(VOLT_SENS_ID, V_VOLTAGE);
 MyMessage ampMsg(AMP_SENS_ID, V_CURRENT);
 
-SoftwareSerial mySerial(8, 11); // RX, TX
-PZEM004T pzem(&mySerial);
+PZEM004T pzem(8, 11); // RX, TX
 IPAddress ip(172,16,250,5);
 
 float cTime=-1.0;
@@ -36,13 +33,22 @@ long creSend=0;  //curent second timer
 byte cSec=0;     //current second for saving power data to correct tariff
 byte cTarifInterval=0;    //current tarif
 
-void incomingMessage(const MyMessage &message) {
+void receive(const MyMessage &message) {
   if (message.type==V_VAR5 && message.sensor == TIM_SENS_ID) {
     float gwPulseCount=message.getFloat();
     cTime=gwPulseCount;
   }
   if (message.type==V_VAR4 && message.sensor == TSND_SENS_ID) {
     reSend=message.getFloat();
+  }
+  if (message.sensor == T_1_SENS_ID) {
+    writeFloat(message.getFloat(), TARIF_1_ADDR, &RTC);
+  }
+  if (message.sensor == T_2_SENS_ID) {
+    writeFloat(message.getFloat(), TARIF_2_ADDR, &RTC);
+  }
+  if (message.sensor == T_3_SENS_ID) {
+    writeFloat(message.getFloat(), TARIF_3_ADDR, &RTC);
   }
 }
 
@@ -70,7 +76,7 @@ void saveData(float a1, float a2, float a3) {
   writeFloat(a1, TARIF_1_ADDR, &RTC);
   writeFloat(a2, TARIF_2_ADDR, &RTC);
   writeFloat(a3, TARIF_3_ADDR, &RTC);
-  ts=t1+t2+t3;
+  ts=a1+a2+a3;
   RTC.writenvram(TARIF_CRC, tarif_crc(&ts));
 }
 
@@ -100,41 +106,38 @@ void setup() {
   pzem.setAddress(ip);  
   Wire.begin();
   RTC.begin();
-  RTC.squareWave(SQWAVE_1_HZ);
-  gw.begin(incomingMessage);
-  gw.sendSketchInfo("Power Meter", "3.0");
-  gw.present(T_1_SENS_ID, S_POWER);
-  gw.present(T_2_SENS_ID, S_POWER);
-  gw.present(T_3_SENS_ID, S_POWER);
-  gw.present(TIM_SENS_ID, S_CUSTOM);
-  gw.present(TSND_SENS_ID, S_CUSTOM);
-  gw.present(WAT_SENS_ID, S_POWER);
-  gw.present(VOLT_SENS_ID, S_MULTIMETER);
-  gw.present(AMP_SENS_ID, S_MULTIMETER); 
-  //gw.request(TSND_SENS_ID, V_VAR4);
+  RTC.writeSqwPinMode(SquareWave1HZ);
 
   ts = readFloat(TARIF_1_ADDR, &RTC)+readFloat(TARIF_2_ADDR, &RTC)+readFloat(TARIF_3_ADDR, &RTC);
   byte cr = RTC.readnvram(TARIF_CRC);
   byte crg = tarif_crc(&ts);
   
   if (crg != cr) {
-    gw.request(T_1_SENS_ID, V_KWH);
-    gw.request(T_3_SENS_ID, V_KWH);
-    gw.request(T_3_SENS_ID, V_KWH);
-    saveData(t1, t2, t3);
+    request(T_1_SENS_ID, V_KWH);
+    request(T_3_SENS_ID, V_KWH);
+    request(T_3_SENS_ID, V_KWH);
+    ts = readFloat(TARIF_1_ADDR, &RTC)+readFloat(TARIF_2_ADDR, &RTC)+readFloat(TARIF_3_ADDR, &RTC);
+    RTC.writenvram(TARIF_CRC, tarif_crc(&ts));
   }
 }
 
 void presentation() {
-  
+  sendSketchInfo("Power Meter", "3.0");
+  present(T_1_SENS_ID, S_POWER);
+  present(T_2_SENS_ID, S_POWER);
+  present(T_3_SENS_ID, S_POWER);
+  present(TIM_SENS_ID, S_CUSTOM);
+  present(TSND_SENS_ID, S_CUSTOM);
+  present(WAT_SENS_ID, S_POWER);
+  present(VOLT_SENS_ID, S_MULTIMETER);
+  present(AMP_SENS_ID, S_MULTIMETER);
 }
 
 void loop() {
-  gw.process();
   if (cTime > 0) {
     RTC.adjust(DateTime(uint32_t(cTime)));
     cTime=-1.0;
-    gw.send(nodeTime.set(getSensorVal(TIM_SENS_ID)));
+    send(nodeTime.set(getSensorVal(TIM_SENS_ID), 0));
   }
   if (cSec > ASK_TIME_INERV) { /*once a minute, if hour and tariff is changed, summ delta to current tariff*/
     byte vTarifInterval=tariff_interval();
@@ -149,14 +152,14 @@ void loop() {
     cSec=0;
   }
   if (creSend > reSend) {
-    gw.send(kwhMsgT1.set(getSensorVal(T_1_SENS_ID), 2));
-    gw.send(kwhMsgT2.set(getSensorVal(T_2_SENS_ID), 2));
-    gw.send(kwhMsgT3.set(getSensorVal(T_3_SENS_ID), 2));
-    gw.send(nodeTime.set(getSensorVal(TIM_SENS_ID)));
-    gw.send(kwSendTime.set(creSend));
-    gw.send(voltMsg.set(pzem.voltage(ip), 2));
-    gw.send(ampMsg.set(pzem.current(ip), 2));
-    gw.send(wattMsg.set(pzem.power(ip), 2));
+    send(kwhMsgT1.set(getSensorVal(T_1_SENS_ID), 2));
+    send(kwhMsgT2.set(getSensorVal(T_2_SENS_ID), 2));
+    send(kwhMsgT3.set(getSensorVal(T_3_SENS_ID), 2));
+    send(nodeTime.set(getSensorVal(TIM_SENS_ID), 0));
+    send(kwSendTime.set(creSend));
+    send(voltMsg.set(pzem.voltage(ip), 2));
+    send(ampMsg.set(pzem.current(ip), 2));
+    send(wattMsg.set(pzem.power(ip), 2));
     creSend=0;
   }
 
