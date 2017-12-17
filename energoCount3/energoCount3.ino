@@ -18,8 +18,8 @@ MyMessage kwSendTime(TSND_SENS_ID, V_VAR4);
 MyMessage voltMsg(VOLT_SENS_ID, V_VOLTAGE);
 MyMessage ampMsg(AMP_SENS_ID, V_CURRENT);
 
-PZEM004T pzem(8, 11); // RX, TX
-IPAddress ip(172,16,250,5);
+PZEM004T pzem(8, 7); // RX, TX
+IPAddress ip(192,168,1,1);
 
 float cTime=-1.0;
 float watt;
@@ -103,7 +103,7 @@ void newSecond() {
 }
 
 void setup() {
-  attachInterrupt(digitalPinToInterrupt(3), newSecond, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(3), newSecond, RISING);
   pzem.setAddress(ip);  
   Wire.begin();
   RTC.begin();
