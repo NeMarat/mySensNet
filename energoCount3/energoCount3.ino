@@ -18,7 +18,7 @@ MyMessage kwSendTime(TSND_SENS_ID, V_VAR4);
 MyMessage voltMsg(VOLT_SENS_ID, V_VOLTAGE);
 MyMessage ampMsg(AMP_SENS_ID, V_CURRENT);
 
-PZEM004T pzem(8, 7); // RX, TX
+PZEM004T pzem(&Serial); //pzem(8, 7); // RX, TX
 IPAddress ip(192,168,1,1);
 
 float cTime=-1.0;
