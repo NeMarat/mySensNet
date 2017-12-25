@@ -109,6 +109,10 @@ void setup() {
   RTC.begin();
   RTC.writeSqwPinMode(SquareWave1HZ);
 
+  cTarifInterval=tariff_interval();
+  ct = pzem.energy(ip);
+  writeFloat(ct, TARIF_LAST_AD, &RTC);
+
   ts = readFloat(TARIF_1_ADDR, &RTC)+readFloat(TARIF_2_ADDR, &RTC)+readFloat(TARIF_3_ADDR, &RTC);
   byte cr = RTC.readnvram(TARIF_CRC);
   byte crg = tarif_crc(&ts);
@@ -141,6 +145,7 @@ void loop() {
   if (cTime > 0) {
     RTC.adjust(DateTime(uint32_t(cTime)));
     cTime=-1.0;
+    cTarifInterval=tariff_interval();
     send(nodeTime.set(getSensorVal(TIM_SENS_ID), 0));
   }
   if (cSec > ASK_TIME_INERV) { /*once a minute, if hour and tariff is changed, summ delta to current tariff*/
