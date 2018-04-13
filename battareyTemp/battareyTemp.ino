@@ -1,6 +1,11 @@
+#define MY_RADIO_NRF24
+
 #include <SPI.h>
-#include <MySensor.h>  
-#include <DHT.h>  
+#include <MySensors.h>  
+#include <DHT.h>
+#include <DHT_U.h>
+
+#define DHTTYPE DHT22
 
 #define CHILD_ID_HUM 0
 #define CHILD_ID_TEMP 1
@@ -16,8 +21,8 @@ float lastHumidity;
 float temperature;
 float humidity;
 
-DHT dht;
-MySensor gw;
+DHT dht(HUMIDITY_SENSOR_DIGITAL_PIN, DHTTYPE);
+//MySensor gw;
 boolean metric = true;
 MyMessage msgHum(CHILD_ID_HUM, V_HUM);
 MyMessage msgTemp(CHILD_ID_TEMP, V_TEMP);
@@ -64,17 +69,17 @@ void setup() {
   analogReference(DEFAULT);
   pinMode(HUMIDITY_SENSOR_POW_PIN, OUTPUT);
   //pinMode(HUMIDITY_SENSOR_DIGITAL_PIN, INPUT);
-  digitalWrite(HUMIDITY_SENSOR_POW_PIN, HIGH);
+  //digitalWrite(HUMIDITY_SENSOR_POW_PIN, HIGH);
   //delay(200);
-  gw.begin();
-  dht.setup(HUMIDITY_SENSOR_DIGITAL_PIN, DHT::AM2302);
+  //gw.begin();
+  //dht.setup(HUMIDITY_SENSOR_DIGITAL_PIN, DHT::AM2302);
 
   // Send the Sketch Version Information to the Gateway
-  gw.sendSketchInfo("Humidity and temp", "2.2");
+  sendSketchInfo("Humidity and temp", "2.2");
 
   // Register all sensors to gw (they will be created as child devices)
-  gw.present(CHILD_ID_HUM, S_HUM);
-  gw.present(CHILD_ID_TEMP, S_TEMP);
+  present(CHILD_ID_HUM, S_HUM);
+  present(CHILD_ID_TEMP, S_TEMP);
   
   delay(20);
 }
@@ -82,27 +87,28 @@ void setup() {
 void loop() {
   //gw.begin();
   digitalWrite(HUMIDITY_SENSOR_POW_PIN, HIGH);
-  delay(2000);
-  gw.process();
+  sleep(6000);
+  //delay(2000);
+  //process();
   //gw.sendBatteryLevel(readVcc()*10);
   //delay(2*dht.getMinimumSamplingPeriod());
-  temperature = dht.getTemperature();
-  delay(dht.getMinimumSamplingPeriod());
-  humidity = dht.getHumidity();  
+  temperature = dht.readTemperature();
+  //sleep(dht.getMinimumSamplingPeriod());
+  humidity = dht.readHumidity();  
   digitalWrite(HUMIDITY_SENSOR_POW_PIN, LOW);
   
   if (!isnan(temperature) && !isnan(humidity)) {
-    gw.sendBatteryLevel(readVcc()*10);
+    sendBatteryLevel(readVcc()*10);
     if (humidity != lastHumidity) {
       lastHumidity = humidity;
-      gw.send(msgHum.set(humidity, 1));
+      send(msgHum.set(humidity, 1));
     }
     if (temperature != lastTemperature) {
       lastTemperature = temperature;
-      gw.send(msgTemp.set(temperature, 1));
+      send(msgTemp.set(temperature, 1));
     }
   }
 
-  gw.sleep(SLEEP_TIME);
+  sleep(SLEEP_TIME);
 }
 
